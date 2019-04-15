@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import math
 import numpy as np
 import re
 
@@ -7,44 +8,7 @@ from pysisyphus.helpers import geom_from_xyz_file
 from pysisyphus.Geometry import Geometry
 
 
-C = 299_792_458 # m/s
-PLANCK = 6.626_0700_40e-34 # J/s
-KB = 1.380_648_52e-23 # J/K
-NA = 6.022_140_857e23 # 1/mol
-
-
-def get_symmetry_number(point_group):
-    symm_dict = {
-        "c1": 1,
-        "ci": 1,
-        "cs": 1,
-        "cinf": 1,
-        "dinfh": 2,
-        "t": 12,
-        "td": 12,
-        "oh": 24,
-        "ih": 60,
-    }
-    pg = point_group.lower()
-    try:
-        return symm_dict[pg]
-    except KeyError:
-        pass
-    regex = "[cds](\d+)"
-    mobj = re.match(regex, pg)
-    try:
-        sym_num = int(mobj[1])
-    except TypeError:
-        raise Exception(f"Specified point group '{pg}' is invalid!")
-
-    if pg.startswith("d"):
-        sym_num *= 2
-    elif pg.startswith("s"):
-        sym_num /= 2
-    assert sym_num == int(sym_num), "Check your point group! Did you " \
-        "specify some 'Sn' group with n ∈ (1, 3, 5, ...)? Please use " \
-        "the corresponding 'Cnm' groups instead!"
-    return sym_num
+from nicevibes.constants import C, KB, NA, R, PLANCK
 
 
 def rotational_temperature(Rm):
@@ -69,14 +33,45 @@ def get_V_free(solvent="chloroform", C_free=8):
     return C_free * ((1e27/(concentration*NA))**(1/3) - V_molec**(1/3))**3
 
 
+def translation_energy(temperature):
+    """Kinectic energy of an ideal gas."""
+    return 3/2 * R * temperature
+
+
+def electronic_entropy(multiplicity):
+    """Considering only the ground state."""
+    return R * math.log(multiplicity)
+
+
+def sackur_tetrode(molecular_mass, temperature):
+    """Translational entropy for a monoatomic ideal gas."""
+    return (  3/2 * R * np.log(molecular_mass)
+            + 5/2 * R * np.log(temperature)
+            - 2.315)
+
+
+def translational_entropy(molecular_mass, temperature, kind="sackur"):
+    funcs = {
+        "sackur": sackur_tetrode,
+    }
+    return funcs[kind](molecular_mass, temperature)
+
+
+def thermochemistry(qc, temperature):
+    U_trans = translation_energy(temperature)
+    print("U_trans", U_trans)
+    S_el = electronic_entropy(qc.mult)
+    print("S_el", S_el)
+    S_trans = translational_entropy(qc.M, temperature)
+    print("S_trans", S_trans)
+
+
 def run():
     Rcm= (10.067986, 0.877991, 0.840280)
     Rm= np.array(Rcm) * 100
     t = rotational_temperature(Rm)
 
 
-    sn = get_symmetry_number
-    c2v = sn("C2v")
     V = get_V_free()
     # import pdb; pdb.set_trace()
     v = get_V_free("chloroform")
