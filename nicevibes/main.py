@@ -94,7 +94,7 @@ def rotational_entropy(temperature, rot_temperatures, symmetry_number,
     return S_rot
 
 
-def vibrational_entropy_harmonic(temperature, frequencies):
+def harmonic_vibrational_entropies(temperature, frequencies):
     # This is the formula as given in the Grimme paper in Eq. (3).
     # As given in the paper the first term misses a T in the
     # denominator.
@@ -106,11 +106,38 @@ def vibrational_entropy_harmonic(temperature, frequencies):
 
     # As given in the Gaussian whitepaper "Thermochemistry in Gaussian."
     vib_temps = frequencies * PLANCK / KB
-    S_vib = KB * (
+    S_vibs = KB * (
                 (vib_temps / temperature) / (np.exp(vib_temps/temperature) - 1)
                  - np.log(1- np.exp(-vib_temps/temperature))
-    ).sum()
-    return S_vib
+    )
+    return S_vibs
+
+
+def quasi_harmonic_vibrational_entropies(temperature, frequencies, B_av=1e-44):
+    inertia_moments = PLANCK / (8 * np.pi**2 * frequencies)
+    eff_inertia_moments = (inertia_moments * B_av) / (inertia_moments + B_av)
+    S_vibs = KB * (
+        1/2 + np.log((8*np.pi**3*eff_inertia_moments*KB*temperature/PLANCK**2)**(1/2))
+    )
+    return S_vibs
+
+
+def vibrational_entropies(temperature, frequencies, cutoff, alpha):
+    """cutoff in cm^-1"""
+    wavenumbers = (frequencies / C) / 100
+    # print("wavenumbers")
+    # print(wavenumbers)
+    weights = 1 / (1 + (cutoff/wavenumbers)**alpha)
+    # print("weights")
+    # print(weights)
+    S_harmonic = harmonic_vibrational_entropies(temperature, frequencies)
+    S_quasi_harmonic = quasi_harmonic_vibrational_entropies(temperature, frequencies)
+    S_vibs = weights*S_harmonic + (1 - weights)*S_quasi_harmonic
+    return S_vibs
+
+
+def vibrational_entropy(temperature, frequencies, cutoff=100, alpha=4):
+    return vibrational_entropies(temperature, frequencies, cutoff, alpha).sum()
 
 
 def thermochemistry(qc, temperature):
@@ -142,5 +169,13 @@ def thermochemistry(qc, temperature):
     S_trans = translational_entropy(qc.M, temperature)
     print("S_trans", S_trans, S2kcalmol(S_trans, temperature), S2calmol(S_trans))
 
-    S_vib = vibrational_entropy_harmonic(temperature, qc.vib_frequencies)
+    S_hvibs = harmonic_vibrational_entropies(temperature, qc.vib_frequencies)
+    S_hvib = S_hvibs.sum()
+    print("S_hvib", S_hvib, S2kcalmol(S_hvib, temperature), S2calmol(S_hvib))
+
+    S_qvibs = quasi_harmonic_vibrational_entropies(temperature, qc.vib_frequencies)
+    S_qvib = S_qvibs.sum()
+    print("S_qvib", S_qvib, S2kcalmol(S_qvib, temperature), S2calmol(S_qvib))
+
+    S_vib = vibrational_entropy(temperature, qc.vib_frequencies)
     print("S_vib", S_vib, S2kcalmol(S_vib, temperature), S2calmol(S_vib))

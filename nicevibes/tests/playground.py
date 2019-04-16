@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 
+import matplotlib.pyplot as plt
 import numpy as np
 
+from nicevibes.constants import NA, C
+from nicevibes.main import (thermochemistry, sackur_tetrode_simplified,
+                            harmonic_vibrational_entropies,
+                            quasi_harmonic_vibrational_entropies,
+                            vibrational_entropies)
 from nicevibes.QCData import QCData
-from nicevibes.main import thermochemistry
 
 
 np.set_printoptions(precision=6)
@@ -29,11 +34,6 @@ def run():
 
 
 def plot_s_trans():
-    from nicevibes.main import sackur_tetrode_simplified
-    from nicevibes.constants import NA
-    import matplotlib.pyplot as plt
-    import numpy as np
-
     Ms = np.linspace(1, 300, 100)
     temps = (298.15, 373.15, 573.15)
 
@@ -51,6 +51,29 @@ def plot_s_trans():
     plt.show()
 
 
+def plot_vibrational_entropies():
+    fig, ax = plt.subplots()
+
+    T = 298.15
+    wavenumbers = np.linspace(0, 350, 100) * 100 # in m^-1
+    freqs = C*wavenumbers
+
+    S_hvibs = harmonic_vibrational_entropies(T, freqs)
+    S_qvibs = quasi_harmonic_vibrational_entropies(T, freqs)
+    cutoff = 100
+    alpha = 4
+    S_vibs = vibrational_entropies(T, freqs, cutoff, alpha)
+
+    ax.plot(wavenumbers/100, S_hvibs*NA, label="harmonic")
+    ax.plot(wavenumbers/100, S_qvibs*NA, label="quasi")
+    ax.plot(wavenumbers/100, S_vibs*NA, label="weighted")
+    ax.set_xlabel("mode frequency / cm$^{-1}$")
+    ax.set_ylabel("entropy / J mol$^{-1}$ K$^{-1}$")
+    ax.legend()
+    plt.show()
+
+
 if __name__ == "__main__":
     run()
     # plot_s_trans()
+    # plot_vibrational_entropies()
