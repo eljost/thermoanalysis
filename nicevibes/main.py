@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 
-import math
 import numpy as np
 import re
-
-from pysisyphus.helpers import geom_from_xyz_file
-from pysisyphus.Geometry import Geometry
-
 
 from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
 
@@ -33,7 +28,7 @@ def translation_energy(temperature):
 
 def electronic_entropy(multiplicity):
     """Considering only the ground state."""
-    return KB * math.log(multiplicity)
+    return KB * np.log(multiplicity)
 
 
 def sackur_tetrode(molecular_mass, temperature):
