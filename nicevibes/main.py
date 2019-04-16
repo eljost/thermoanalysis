@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# [1] http://gaussian.com/thermo/
+# [2] https://doi.org/10.1002/chem.201200497
+# [3] https://doi.org/10.1021/acs.organomet.8b00456
+
 import numpy as np
 
 from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
@@ -11,8 +15,22 @@ from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
 
 
 def electronic_entropy(multiplicity):
-    """Considering only the ground state."""
-    return KB * np.log(multiplicity)
+    """Electronic entropy.
+
+    Only the ground state is considered. See [1] for reference.
+
+    Parameters
+    ----------
+    multiplicity : int
+        Multiplicity of the molecule.
+
+    Returns
+    -------
+    S_el : float
+        Electronic entropy.
+    """
+    S_el = KB * np.log(multiplicity)
+    return S_el
 
 
 #######################
@@ -21,11 +39,41 @@ def electronic_entropy(multiplicity):
 
 
 def translation_energy(temperature):
-    """Kinectic energy of an ideal gas."""
-    return 3/2 * KB * temperature
+    """Kinectic energy of an ideal gas.
+
+    See [1] for reference.
+
+    Parameters
+    ----------
+    temperature : float
+        Temperature in Kelvin.
+
+    Returns
+    -------
+    U_trans : float
+        Kinetic energy.
+    """
+    U_trans = 3/2 * KB * temperature
+    return U_trans
 
 
 def sackur_tetrode(molecular_mass, temperature):
+    """Translational entropy of an ideal gas.
+
+    See [1] for reference.
+
+    Parameters
+    ----------
+    molecular_mass : float
+        Molecular mass in atomic mass units (amu).
+    temperature : float
+        Absolute temperature in Kelvin.
+
+    Returns
+    -------
+    S_trans : float
+        Translational entropy.
+    """
     # Just using 1e5 instead of a "true" atmosphere of 1.01325e5 seems to
     # agree better with the results Gaussian and ORCA produce.
     # pressure = 1.01325e5
@@ -38,13 +86,46 @@ def sackur_tetrode(molecular_mass, temperature):
 
 
 def sackur_tetrode_simplified(molecular_mass, temperature):
-    """Translational entropy for 1 mol of a monoatomic ideal gas."""
-    return (  3/2 * R * np.log(molecular_mass)
-            + 5/2 * R * np.log(temperature)
-            - 2.315)
+    """Translational entropy of a monoatomic ideal gas.
+
+    See [3] for reference.
+
+    Parameters
+    ----------
+    molecular_mass : float
+        Molecular mass in atomic mass units (amu).
+    temperature : float
+        Absolute temperature in Kelvin.
+
+    Returns
+    -------
+    S_trans : float
+        Translational entropy.
+    """
+    S_trans (  3/2 * R * np.log(molecular_mass)
+             + 5/2 * R * np.log(temperature)
+             - 2.315
+    )
+    return S_trans
 
 
 def translational_entropy(molecular_mass, temperature, kind="sackur"):
+    """Wrapper for translational entropy calculation.
+
+    Parameters
+    ----------
+    molecular_mass : float
+        Molecular mass in atomic mass units (amu).
+    temperature : float
+        Absolute temperature in Kelvin.
+    kind : str, ("sackur", "sackur_simple")
+        Type of calculation method.
+
+    Returns
+    -------
+    S_trans : float
+        Translational entropy.
+    """
     funcs = {
         "sackur": sackur_tetrode,
         "sackur_simple": sackur_tetrode_simplified,
@@ -58,17 +139,57 @@ def translational_entropy(molecular_mass, temperature, kind="sackur"):
 
 
 def rotational_energy(temperature, is_linear, is_atom):
+    """Rotational energy.
+
+    See [1] for reference.
+
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    is_linear : bool
+        Wether the molecule is linear.
+    is_atom : bool
+        Wether the molcule is an atom.
+
+    Returns
+    -------
+    U_rot : float
+        Rotational energy.
+    """
     if is_atom:
         rot_energy = 0
     elif is_linear:
         rot_energy = KB * temperature
 
-    rot_energy = 3/2 * KB * temperature
-    return rot_energy
+    U_rot = 3/2 * KB * temperature
+    return U_rot
 
 
 def rotational_entropy(temperature, rot_temperatures, symmetry_number,
                        is_linear, is_atom):
+    """Rotational entropy.
+
+    See [1] for reference.
+
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    rot_temperatures : array-like of size 3
+        Rotational temperatures in Kelvin.
+    symmetry_number : int
+        Symmetry number.
+    is_linear : bool
+        Wether the molecule is linear.
+    is_atom : bool
+        Wether the molcule is an atom.
+
+    Returns
+    -------
+    S_rot : float
+        Rotational entropy.
+    """
     if is_atom:
         S_rot = 0
     if is_linear:

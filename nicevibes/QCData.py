@@ -7,6 +7,7 @@ import numpy as np
 
 from nicevibes.constants import C, ANG2M, AMU2KG, PLANCK, KB
 
+
 class QCData:
 
     def __init__(self, log_fn,
@@ -25,7 +26,7 @@ class QCData:
         parser = cclib.io.ccopen(log_fn)
         data = parser.parse()
         self.data = data
-        coords3d = self.data.atomcoords# * ANG2AU
+        coords3d = self.data.atomcoords  # * ANG2AU
         assert coords3d.shape[0] == 1
         self.coords3d = coords3d[0]
         self.wavenumbers = self.scale_factor * self.data.vibfreqs
@@ -50,7 +51,7 @@ class QCData:
     @property
     def is_linear(self):
         return self.point_group in ("cinf", "dinfh")
-    
+
     @property
     def is_atom(self):
         return len(self.masses) == 1
@@ -106,7 +107,7 @@ class QCData:
                               | xz yz z² |
         """
         x, y, z = self.coords3d.T
-        squares = np.sum(self.coords3d**2 * self.masses[:,None], axis=0)
+        squares = np.sum(self.coords3d**2 * self.masses[:, None], axis=0)
         I_xx = squares[1] + squares[2]
         I_yy = squares[0] + squares[2]
         I_zz = squares[0] + squares[1]
@@ -129,7 +130,7 @@ class QCData:
         R : np.array, shape(3, )
             Center of mass.
         """
-        return 1/self.M * np.sum(self.coords3d*self.masses[:,None],
+        return 1/self.M * np.sum(self.coords3d*self.masses[:, None],
                                  axis=0)
 
     def principal_axes_are_aligned(self):
