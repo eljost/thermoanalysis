@@ -209,14 +209,47 @@ def rotational_entropy(temperature, rot_temperatures, symmetry_number,
 
 
 def zero_point_energy(frequencies):
-    return (PLANCK * frequencies / 2).sum()
+    """Vibrational zero point energies.
+
+    See [1] for reference.
+
+    Parameters
+    ----------
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+
+    Returns
+    -------
+    ZPE : float
+        Vibrational zero point energy for the given frequencies.
+    """
+
+    ZPE = (PLANCK * frequencies / 2).sum()
+    return ZPE
 
 
 def vibrational_energy(temperature, frequencies):
+    """Vibrational energy.
+
+    See [1] for reference.
+
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+
+    Returns
+    -------
+    U_vib : float
+        Vibrational energy.
+    """
     vib_temperatures = PLANCK * frequencies / KB
-    return KB * np.sum(vib_temperatures
-                       * (1/2 + 1 / (np.exp(vib_temperatures/temperature) - 1))
+    U_vib =  KB * np.sum(vib_temperatures
+                         * (1/2 + 1 / (np.exp(vib_temperatures/temperature) - 1))
     )
+    return U_vib
 
 
 def harmonic_vibrational_entropies(temperature, frequencies):
