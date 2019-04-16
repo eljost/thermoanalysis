@@ -1,34 +1,28 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import re
 
 from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
 
 
-def get_V_free(solvent="chloroform", C_free=8):
-    solvents = {
-        # (Concentration in mol/l, molecular volume in Å^3)
-        "chloroform": (12.5, 97),
-        "dioxane": (11.72, 115),
-    }
-
-    try:
-        concentration, V_molec = solvents[solvent]
-    except KeyError:
-        valid_solvents = ", ".join(solvents.keys())
-        raise Exception(f"Invalid solvent! Valid solvents are: {valid_solvents}.")
-    return C_free * ((1e27/(concentration*NA))**(1/3) - V_molec**(1/3))**3
-
-
-def translation_energy(temperature):
-    """Kinectic energy of an ideal gas."""
-    return 3/2 * KB * temperature
+##############
+# ELECTRONIC #
+##############
 
 
 def electronic_entropy(multiplicity):
     """Considering only the ground state."""
     return KB * np.log(multiplicity)
+
+
+#######################
+# TRANSLATIONAL TERMS #
+#######################
+
+
+def translation_energy(temperature):
+    """Kinectic energy of an ideal gas."""
+    return 3/2 * KB * temperature
 
 
 def sackur_tetrode(molecular_mass, temperature):
@@ -58,8 +52,9 @@ def translational_entropy(molecular_mass, temperature, kind="sackur"):
     return funcs[kind](molecular_mass, temperature)
 
 
-def zero_point_energy(frequencies):
-    return (PLANCK * frequencies  / 2).sum()
+####################
+# ROTATIONAL TERMS #
+####################
 
 
 def rotational_energy(temperature, is_linear, is_atom):
@@ -70,13 +65,6 @@ def rotational_energy(temperature, is_linear, is_atom):
 
     rot_energy = 3/2 * KB * temperature
     return rot_energy
-
-
-def vibrational_energy(temperature, frequencies):
-    vib_temperatures = PLANCK * frequencies / KB
-    return KB * np.sum(vib_temperatures
-                       * (1/2 + 1 / (np.exp(vib_temperatures/temperature) - 1))
-    )
 
 
 def rotational_entropy(temperature, rot_temperatures, symmetry_number,
@@ -94,6 +82,22 @@ def rotational_entropy(temperature, rot_temperatures, symmetry_number,
     return S_rot
 
 
+#####################
+# VIBRATIONAL TERMS #
+#####################
+
+
+def zero_point_energy(frequencies):
+    return (PLANCK * frequencies / 2).sum()
+
+
+def vibrational_energy(temperature, frequencies):
+    vib_temperatures = PLANCK * frequencies / KB
+    return KB * np.sum(vib_temperatures
+                       * (1/2 + 1 / (np.exp(vib_temperatures/temperature) - 1))
+    )
+
+
 def harmonic_vibrational_entropies(temperature, frequencies):
     # This is the formula as given in the Grimme paper in Eq. (3).
     # As given in the paper the first term misses a T in the
@@ -108,7 +112,7 @@ def harmonic_vibrational_entropies(temperature, frequencies):
     vib_temps = frequencies * PLANCK / KB
     S_vibs = KB * (
                 (vib_temps / temperature) / (np.exp(vib_temps/temperature) - 1)
-                 - np.log(1- np.exp(-vib_temps/temperature))
+                 - np.log(1 - np.exp(-vib_temps/temperature))
     )
     return S_vibs
 
@@ -122,14 +126,10 @@ def quasi_harmonic_vibrational_entropies(temperature, frequencies, B_av=1e-44):
     return S_vibs
 
 
-def vibrational_entropies(temperature, frequencies, cutoff, alpha):
+def vibrational_entropies(temperature, frequencies, cutoff=100, alpha=4):
     """cutoff in cm^-1"""
     wavenumbers = (frequencies / C) / 100
-    # print("wavenumbers")
-    # print(wavenumbers)
     weights = 1 / (1 + (cutoff/wavenumbers)**alpha)
-    # print("weights")
-    # print(weights)
     S_harmonic = harmonic_vibrational_entropies(temperature, frequencies)
     S_quasi_harmonic = quasi_harmonic_vibrational_entropies(temperature, frequencies)
     S_vibs = weights*S_harmonic + (1 - weights)*S_quasi_harmonic
@@ -143,7 +143,6 @@ def vibrational_entropy(temperature, frequencies, cutoff=100, alpha=4):
 def thermochemistry(qc, temperature):
     print(f"Thermochemistry with {temperature:.2f} K")
     J2au = lambda J: f"{J*J2AU:.8f} au"
-    J2kcalmol = lambda J: f"{J*J2CAL*NA/1000:.8f} kcal/mol"
     S2kcalmol = lambda S, T: f"{S*T*J2CAL*NA/1000:.8f} kcal/mol"
     S2calmol = lambda S: f"{S*J2CAL*NA:.8f} cal/(mol*K)"
 

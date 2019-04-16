@@ -15,22 +15,25 @@ np.set_printoptions(precision=6)
 
 
 def run():
-    # log = "logs/02_dmso_pm6_freq.log"
     log = "logs/04_dmso_hf_freq.log"
-    q = QCData(log, point_group="c1")
-    print(q)
-    rt = q.rot_temperatures
-    print("rot_temps", rt)
+    qc = QCData(log, point_group="c1")
+    T = 298.15
+    thermochemistry(qc, T)
 
-    temp = 298.15
 
-    thermochemistry(q, temp)
+def get_V_free(solvent="chloroform", C_free=8):
+    solvents = {
+        # (Concentration in mol/l, molecular volume in Å^3)
+        "chloroform": (12.5, 97),
+        "dioxane": (11.72, 115),
+    }
 
-    # Rcm= (10.067986, 0.877991, 0.840280)
-    # Rm= np.array(Rcm) * 100
-    # t = rotational_temperature(Rm)
-    # V = get_V_free()
-    # v = get_V_free("chloroform")
+    try:
+        concentration, V_molec = solvents[solvent]
+    except KeyError:
+        valid_solvents = ", ".join(solvents.keys())
+        raise Exception(f"Invalid solvent! Valid solvents are: {valid_solvents}.")
+    return C_free * ((1e27/(concentration*NA))**(1/3) - V_molec**(1/3))**3
 
 
 def plot_s_trans():
