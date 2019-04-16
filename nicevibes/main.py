@@ -8,7 +8,7 @@ from pysisyphus.helpers import geom_from_xyz_file
 from pysisyphus.Geometry import Geometry
 
 
-from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU
+from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL
 
 
 def rotational_temperature(Rm):
@@ -83,15 +83,23 @@ def rotational_entropy(temperature, rot_temperatures, symmetry_number,
                        is_linear, is_atom):
     if is_atom:
         S_rot = 0
-    q_rot = KB * temperature / (rot_temperatures * symmetry_number)
     if is_linear:
+        q_rot = temperature / (rot_temperatures * symmetry_number)
         S_rot = KB * (np.log(q_rot) + 1)
+    # Polyamtomic, non-linear case
+    q_rot = (np.pi**(1/2) / symmetry_number
+             * (temperature**(3/2) / np.product(rot_temperatures)**(1/2))
+    )
     S_rot = KB * (np.log(q_rot) + 3/2)
-    return S_rot.sum()
+    return S_rot
 
 
 def thermochemistry(qc, temperature):
+    print(f"Thermochemistry with {temperature:.2f} K")
     J2au = lambda J: f"{J*J2AU:.8f} au"
+    J2kcalmol = lambda J: f"{J*J2CAL*NA/1000:.8f} kcal/mol"
+    S2kcalmol = lambda S, T: f"{S*T*J2CAL*NA/1000:.8f} kcal/mol"
+    S2calmol = lambda S: f"{S*J2CAL*NA:.8f} cal/(mol*K)"
 
     zpe = zero_point_energy(qc.vib_frequencies)
     print("ZPE", zpe, "J", f"{zpe*J2AU:.6f} au")
@@ -110,9 +118,13 @@ def thermochemistry(qc, temperature):
     print("S_el", S_el)
     S_trans = translational_entropy(qc.M, temperature)
     print("S_trans", S_trans)
-    S_rot = rotational_entropy(temperature, qc.rot_temperatures, qc.symmetry_number,
+    rts = np.array((0.30314, 0.29984, 0.18372))
+    # S_rot = rotational_entropy(temperature, qc.rot_temperatures, qc.symmetry_number,
+                               # qc.is_linear, qc.is_atom)
+    S_rot = rotational_entropy(temperature, rts, qc.symmetry_number,
                                qc.is_linear, qc.is_atom)
-    print("S_rot", S_rot, J2au(S_rot))
+    print("S_rot", S_rot, S2kcalmol(S_rot, temperature), S2calmol(S_rot))
+    print(f"S*T: {S_rot*temperature*J2AU:.6f}")
 
 
 def run():
@@ -122,7 +134,6 @@ def run():
 
 
     V = get_V_free()
-    # import pdb; pdb.set_trace()
     v = get_V_free("chloroform")
 
 

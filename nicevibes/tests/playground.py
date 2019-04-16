@@ -6,13 +6,13 @@ from nicevibes.QCData import QCData
 from nicevibes.constants import PLANCK, KB, AMU2KG
 
 
-np.set_printoptions(suppress=True, precision=4)
+np.set_printoptions(precision=6)
 
 
 def run():
     # log = "logs/02_dmso_pm6_freq.log"
     log = "logs/04_dmso_hf_freq.log"
-    q = QCData(log, point_group="c2v")
+    q = QCData(log, point_group="c1")
     print(q)
     rt = q.rot_temperatures
     print("rot_temps", rt)
