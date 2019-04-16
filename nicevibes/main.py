@@ -8,14 +8,7 @@ from pysisyphus.helpers import geom_from_xyz_file
 from pysisyphus.Geometry import Geometry
 
 
-from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL
-
-
-def rotational_temperature(Rm):
-    """Rotational temperature in K.
-
-    Arguments: rotational constants in 1/m."""
-    return PLANCK*C/KB*np.array(Rm, dtype=float)
+from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
 
 
 def get_V_free(solvent="chloroform", C_free=8):
@@ -44,8 +37,19 @@ def electronic_entropy(multiplicity):
 
 
 def sackur_tetrode(molecular_mass, temperature):
-    """Translational entropy for a monoatomic ideal gas."""
-    print("Wrong unit in sackur tetrode! Convert to single particle energy!")
+    # Just using 1e5 instead of a "true" atmosphere of 1.01325e5 seems to
+    # agree better with the results Gaussian and ORCA produce.
+    # pressure = 1.01325e5
+    pressure = 1e5
+    q_trans = ((2*np.pi*molecular_mass*AMU2KG*KB*temperature/PLANCK**2)**(3/2)
+                * KB * temperature / pressure
+    )
+    S_trans = KB*(np.log(q_trans) + 1 + 3/2)
+    return S_trans
+
+
+def sackur_tetrode_simplified(molecular_mass, temperature):
+    """Translational entropy for 1 mol of a monoatomic ideal gas."""
     return (  3/2 * R * np.log(molecular_mass)
             + 5/2 * R * np.log(temperature)
             - 2.315)
@@ -54,6 +58,7 @@ def sackur_tetrode(molecular_mass, temperature):
 def translational_entropy(molecular_mass, temperature, kind="sackur"):
     funcs = {
         "sackur": sackur_tetrode,
+        "sackur_simple": sackur_tetrode_simplified,
     }
     return funcs[kind](molecular_mass, temperature)
 
@@ -116,27 +121,9 @@ def thermochemistry(qc, temperature):
 
     S_el = electronic_entropy(qc.mult)
     print("S_el", S_el)
-    S_trans = translational_entropy(qc.M, temperature)
-    print("S_trans", S_trans)
-    rts = np.array((0.30314, 0.29984, 0.18372))
-    # S_rot = rotational_entropy(temperature, qc.rot_temperatures, qc.symmetry_number,
-                               # qc.is_linear, qc.is_atom)
-    S_rot = rotational_entropy(temperature, rts, qc.symmetry_number,
+    # rts = np.array((0.30314, 0.29984, 0.18372))
+    S_rot = rotational_entropy(temperature, qc.rot_temperatures, qc.symmetry_number,
                                qc.is_linear, qc.is_atom)
     print("S_rot", S_rot, S2kcalmol(S_rot, temperature), S2calmol(S_rot))
-    print(f"S*T: {S_rot*temperature*J2AU:.6f}")
-
-
-def run():
-    Rcm= (10.067986, 0.877991, 0.840280)
-    Rm= np.array(Rcm) * 100
-    t = rotational_temperature(Rm)
-
-
-    V = get_V_free()
-    v = get_V_free("chloroform")
-
-
-
-if __name__ == "__main__":
-    run()
+    S_trans = translational_entropy(qc.M, temperature)
+    print("S_trans", S_trans, S2kcalmol(S_trans, temperature), S2calmol(S_trans))
