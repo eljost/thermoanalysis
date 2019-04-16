@@ -99,6 +99,25 @@ def rotational_entropy(temperature, rot_temperatures, symmetry_number,
     return S_rot
 
 
+def vibrational_entropy_harmonic(temperature, frequencies):
+    # This is the formula as given in the Grimme paper in Eq. (3).
+    # As given in the paper the first term misses a T in the
+    # denominator.
+    # hnu = PLANCK * frequencies
+    # hnu_kt = hnu / (KB * temperature)
+    # S_vib = KB * (hnu / (KB*(np.exp(hnu_kt) - 1)*temperature)
+                  # - np.log(1 - np.exp(-hnu_kt))
+    # ).sum()
+
+    # As given in the Gaussian whitepaper "Thermochemistry in Gaussian."
+    vib_temps = frequencies * PLANCK / KB
+    S_vib = KB * (
+                (vib_temps / temperature) / (np.exp(vib_temps/temperature) - 1)
+                 - np.log(1- np.exp(-vib_temps/temperature))
+    ).sum()
+    return S_vib
+
+
 def thermochemistry(qc, temperature):
     print(f"Thermochemistry with {temperature:.2f} K")
     J2au = lambda J: f"{J*J2AU:.8f} au"
@@ -127,3 +146,6 @@ def thermochemistry(qc, temperature):
     print("S_rot", S_rot, S2kcalmol(S_rot, temperature), S2calmol(S_rot))
     S_trans = translational_entropy(qc.M, temperature)
     print("S_trans", S_trans, S2kcalmol(S_trans, temperature), S2calmol(S_trans))
+
+    S_vib = vibrational_entropy_harmonic(temperature, qc.vib_frequencies)
+    print("S_vib", S_vib, S2kcalmol(S_vib, temperature), S2calmol(S_vib))

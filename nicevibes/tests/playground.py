@@ -53,4 +53,4 @@ def plot_s_trans():
 
 if __name__ == "__main__":
     run()
-    plot_s_trans()
+    # plot_s_trans()
