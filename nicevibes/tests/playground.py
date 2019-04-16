@@ -6,7 +6,7 @@ import numpy as np
 from nicevibes.constants import NA, C
 from nicevibes.main import (thermochemistry, sackur_tetrode_simplified,
                             harmonic_vibrational_entropies,
-                            quasi_harmonic_vibrational_entropies,
+                            free_rotor_entropies,
                             vibrational_entropies)
 from nicevibes.QCData import QCData
 
@@ -62,7 +62,7 @@ def plot_vibrational_entropies():
     freqs = C*wavenumbers
 
     S_hvibs = harmonic_vibrational_entropies(T, freqs)
-    S_qvibs = quasi_harmonic_vibrational_entropies(T, freqs)
+    S_qvibs = free_rotor_entropies(T, freqs)
     cutoff = 100
     alpha = 4
     S_vibs = vibrational_entropies(T, freqs, cutoff, alpha)

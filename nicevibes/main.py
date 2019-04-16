@@ -102,9 +102,9 @@ def sackur_tetrode_simplified(molecular_mass, temperature):
     S_trans : float
         Translational entropy.
     """
-    S_trans (  3/2 * R * np.log(molecular_mass)
-             + 5/2 * R * np.log(temperature)
-             - 2.315
+    S_trans = (  3/2 * R * np.log(molecular_mass)
+               + 5/2 * R * np.log(temperature)
+               - 2.315
     )
     return S_trans
 
@@ -253,16 +253,34 @@ def vibrational_energy(temperature, frequencies):
 
 
 def harmonic_vibrational_entropies(temperature, frequencies):
-    # This is the formula as given in the Grimme paper in Eq. (3).
-    # As given in the paper the first term misses a T in the
-    # denominator.
+    """Vibrational entropy of a harmonic oscillator.
+
+    See [1] and [2] for reference. Eq. (3) in the Grimme paper
+    is lacking a T in the denominator of the first term. It is given as
+    h*w/(k(e^(hw/kt) -1)) but it must be h*w(kT(e^(hw/kT)-1)) instead.
+    Here the calculation is done as presented in [1].
+
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+
+    Returns
+    -------
+    S_vib : array-like
+        Array containing vibrational entropies.
+    """
+
+    # Correct formula from the Grimme paper [3].
     # hnu = PLANCK * frequencies
     # hnu_kt = hnu / (KB * temperature)
     # S_vib = KB * (hnu / (KB*(np.exp(hnu_kt) - 1)*temperature)
                   # - np.log(1 - np.exp(-hnu_kt))
     # ).sum()
 
-    # As given in the Gaussian whitepaper "Thermochemistry in Gaussian."
+    # As given in [1].
     vib_temps = frequencies * PLANCK / KB
     S_vibs = KB * (
                 (vib_temps / temperature) / (np.exp(vib_temps/temperature) - 1)
@@ -271,26 +289,85 @@ def harmonic_vibrational_entropies(temperature, frequencies):
     return S_vibs
 
 
-def quasi_harmonic_vibrational_entropies(temperature, frequencies, B_av=1e-44):
+def free_rotor_entropies(temperature, frequencies, B_av=1e-44):
+    """Entropy of a free rotor.
+
+    See [2] for reference.
+
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+    B_av : float
+        Limiting value for effective moment of inertia in kg*m².
+
+    Returns
+    -------
+    S_free_rots : array-like
+        Array containing free-rotor entropies.
+    """
     inertia_moments = PLANCK / (8 * np.pi**2 * frequencies)
     eff_inertia_moments = (inertia_moments * B_av) / (inertia_moments + B_av)
-    S_vibs = KB * (
+    S_free_rots = KB * (
         1/2 + np.log((8*np.pi**3*eff_inertia_moments*KB*temperature/PLANCK**2)**(1/2))
     )
-    return S_vibs
+    return S_free_rots
 
 
 def vibrational_entropies(temperature, frequencies, cutoff=100, alpha=4):
-    """cutoff in cm^-1"""
+    """Weighted vibrational entropy.
+
+    As given in Eq. (7) of [2].
+
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+    cutoff : float
+        Wavenumber cutoff in cm⁻¹. Vibrations below this threshold will mostly
+        be described by free-rotor entropies.
+    alpha : float
+        Exponent alpha in the damping function (Eq. (8) in [2]).
+
+    Returns
+    -------
+    S_vibs : array-like
+        Array containing vibrational entropies.
+    """
     wavenumbers = (frequencies / C) / 100
     weights = 1 / (1 + (cutoff/wavenumbers)**alpha)
     S_harmonic = harmonic_vibrational_entropies(temperature, frequencies)
-    S_quasi_harmonic = quasi_harmonic_vibrational_entropies(temperature, frequencies)
+    S_quasi_harmonic = free_rotor_entropies(temperature, frequencies)
     S_vibs = weights*S_harmonic + (1 - weights)*S_quasi_harmonic
     return S_vibs
 
 
 def vibrational_entropy(temperature, frequencies, cutoff=100, alpha=4):
+    """Vibrational entropy.
+
+    Wrapper function. As given in Eq. (7) of [2].
+
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+    cutoff : float
+        Wavenumber cutoff in cm⁻¹. Vibrations below this threshold will mostly
+        be described by free-rotor entropies.
+    alpha : float
+        Exponent alpha in the damping function (Eq. (8) in [2]).
+
+    Returns
+    -------
+    S_vib : float
+        Vibrational entropy.
+    """
     return vibrational_entropies(temperature, frequencies, cutoff, alpha).sum()
 
 
@@ -326,7 +403,7 @@ def thermochemistry(qc, temperature):
     S_hvib = S_hvibs.sum()
     print("S_hvib", S_hvib, S2kcalmol(S_hvib, temperature), S2calmol(S_hvib))
 
-    S_qvibs = quasi_harmonic_vibrational_entropies(temperature, qc.vib_frequencies)
+    S_qvibs = free_rotor_entropies(temperature, qc.vib_frequencies)
     S_qvib = S_qvibs.sum()
     print("S_qvib", S_qvib, S2kcalmol(S_qvib, temperature), S2calmol(S_qvib))
 
