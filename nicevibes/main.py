@@ -8,7 +8,7 @@ from pysisyphus.helpers import geom_from_xyz_file
 from pysisyphus.Geometry import Geometry
 
 
-from nicevibes.constants import C, KB, NA, R, PLANCK
+from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU
 
 
 def rotational_temperature(Rm):
@@ -35,16 +35,17 @@ def get_V_free(solvent="chloroform", C_free=8):
 
 def translation_energy(temperature):
     """Kinectic energy of an ideal gas."""
-    return 3/2 * R * temperature
+    return 3/2 * KB * temperature
 
 
 def electronic_entropy(multiplicity):
     """Considering only the ground state."""
-    return R * math.log(multiplicity)
+    return KB * math.log(multiplicity)
 
 
 def sackur_tetrode(molecular_mass, temperature):
     """Translational entropy for a monoatomic ideal gas."""
+    print("Wrong unit in sackur tetrode! Convert to single particle energy!")
     return (  3/2 * R * np.log(molecular_mass)
             + 5/2 * R * np.log(temperature)
             - 2.315)
@@ -57,13 +58,61 @@ def translational_entropy(molecular_mass, temperature, kind="sackur"):
     return funcs[kind](molecular_mass, temperature)
 
 
+def zero_point_energy(frequencies):
+    return (PLANCK * frequencies  / 2).sum()
+
+
+def rotational_energy(temperature, is_linear, is_atom):
+    if is_atom:
+        rot_energy = 0
+    elif is_linear:
+        rot_energy = KB * temperature
+
+    rot_energy = 3/2 * KB * temperature
+    return rot_energy
+
+
+def vibrational_energy(temperature, frequencies):
+    vib_temperatures = PLANCK * frequencies / KB
+    return KB * np.sum(vib_temperatures
+                       * (1/2 + 1 / (np.exp(vib_temperatures/temperature) - 1))
+    )
+
+
+def rotational_entropy(temperature, rot_temperatures, symmetry_number,
+                       is_linear, is_atom):
+    if is_atom:
+        S_rot = 0
+    q_rot = KB * temperature / (rot_temperatures * symmetry_number)
+    if is_linear:
+        S_rot = KB * (np.log(q_rot) + 1)
+    S_rot = KB * (np.log(q_rot) + 3/2)
+    return S_rot.sum()
+
+
 def thermochemistry(qc, temperature):
+    J2au = lambda J: f"{J*J2AU:.8f} au"
+
+    zpe = zero_point_energy(qc.vib_frequencies)
+    print("ZPE", zpe, "J", f"{zpe*J2AU:.6f} au")
     U_trans = translation_energy(temperature)
-    print("U_trans", U_trans)
+    print("U_trans", U_trans, J2au(U_trans))
+    U_rot = rotational_energy(temperature, qc.is_linear, qc.is_atom)
+    print("U_rot", U_rot, J2au(U_rot))
+    U_vib = vibrational_energy(temperature, qc.vib_frequencies)
+    print("U_vib", U_vib, J2au(U_vib))
+
+    # ZPE isn't included here as it is already included in the U_vib term
+    therm_corr = U_rot + U_vib + U_trans
+    print("thermal_corr", therm_corr, J2au(therm_corr))
+
     S_el = electronic_entropy(qc.mult)
     print("S_el", S_el)
     S_trans = translational_entropy(qc.M, temperature)
     print("S_trans", S_trans)
+    S_rot = rotational_entropy(temperature, qc.rot_temperatures, qc.symmetry_number,
+                               qc.is_linear, qc.is_atom)
+    print("S_rot", S_rot, J2au(S_rot))
 
 
 def run():

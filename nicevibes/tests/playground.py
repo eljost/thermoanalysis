@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 
+import numpy as np
+
 from nicevibes.QCData import QCData
+from nicevibes.constants import PLANCK, KB, AMU2KG
+
+
+np.set_printoptions(suppress=True, precision=4)
 
 
 def run():
-    log = "logs/02_dmso_freq.log"
+    # log = "logs/02_dmso_pm6_freq.log"
+    log = "logs/04_dmso_hf_freq.log"
     q = QCData(log, point_group="c2v")
-    # import pdb; pdb.set_trace()
     print(q)
+    rt = q.rot_temperatures
+    print("rot_temps", rt)
 
     temp = 298.15
 
