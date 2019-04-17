@@ -15,11 +15,10 @@ from thermoanalysis.constants import (C, KB, KBAU, NA, R, PLANCK,
 
 ThermoResults = namedtuple(
                     "ThermoResults",
-                    ("T "
+                    ("T M "
                      "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
                      "S_trans S_rot S_vib S_el S_tot "
-                     "TS_trans TS_rot TS_vib TS_el TS_tot G "
-                     "M "
+                     "TS_trans TS_rot TS_vib TS_el TS_tot G dG"
                     ),
 )
 
@@ -400,7 +399,7 @@ def thermochemistry(qc, temperature, kind="qrrho"):
     U_tot = U_el + U_therm
 
     zpe = zero_point_energy(qc.vib_frequencies)
-    H = U_tot + KB*T
+    H = U_tot + KBAU*T
 
     S_el = electronic_entropy(qc.mult)
     S_rot = rotational_entropy(T, qc.rot_temperatures, qc.symmetry_number,
@@ -416,9 +415,11 @@ def thermochemistry(qc, temperature, kind="qrrho"):
         raise Exception("You should never get here!")
     S_tot = S_el + S_trans + S_rot + S_vib
     G = H - T*S_tot
+    dG = G - U_el
 
     thermo = ThermoResults(
                 temperature,
+                qc.M,
                 U_el,
                 U_trans,
                 U_rot,
@@ -438,7 +439,7 @@ def thermochemistry(qc, temperature, kind="qrrho"):
                 T*S_el,
                 T*S_tot,
                 G,
-                M=qc.M,
+                dG,
     )
     return thermo
 

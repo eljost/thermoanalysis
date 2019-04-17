@@ -18,7 +18,7 @@ def print_thermos(thermos):
     # fields = ("T U_el U_trans U_rot U_vib H "
               # "TS_el TS_trans TS_rot TS_vib TS_tot G".split()
     # )
-    fields = "T U_el U_therm U_tot H TS_tot G".split()
+    fields = "T U_el U_therm U_tot H TS_tot G dG".split()
     filtered = list()
     for thermo in thermos:
         _ = [getattr(thermo, f) for f in fields]
