@@ -13,9 +13,10 @@ from thermoanalysis.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
 
 ThermoResults = namedtuple(
                     "ThermoResults",
-                    ("ZPE U_trans U_rot U_vib therm_corr "
+                    ("T "
+                     "ZPE U_trans U_rot U_vib therm_corr "
                      "S_trans S_rot S_vib S_el S_tot "
-                     "T"),
+                    ),
 )
 
 
@@ -407,6 +408,7 @@ def thermochemistry(qc, temperature, kind="qrrho"):
     S_tot = S_el + S_trans + S_rot + S_vib
 
     thermo = ThermoResults(
+                temperature,
                 zpe,
                 U_trans,
                 U_rot,
@@ -417,7 +419,6 @@ def thermochemistry(qc, temperature, kind="qrrho"):
                 S_vib,
                 S_el,
                 S_tot,
-                temperature,
     )
     return thermo
 

@@ -17,7 +17,7 @@ numpy
 ```
 python setup.py install
 ```
-Until cclib 1.6.2 is released this patch [Correct parsing of vibrational frequencies with ORCA 4.1.x](https://github.com/cclib/cclib/pull/706/commits/18a3945ed6eaa82f418e2150eb5307be9697c238) has to be applied to correctly parse frequency calculations done with recent ORCA versions (4.1+).
+Until `cclib 1.6.2` is released a patch ([Correct parsing of vibrational frequencies with ORCA 4.1.x](https://github.com/cclib/cclib/pull/706/commits/18a3945ed6eaa82f418e2150eb5307be9697c238)) has to be applied to `cclib` correctly parse frequency calculations done with recent ORCA versions (4.1+).
 
 ## Running tests
 ```

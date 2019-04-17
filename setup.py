@@ -17,9 +17,10 @@ setup(
     platforms=["unix"],
     packages=find_packages(),
     install_requires=[
-        "numpy",
         "cclib",
+        "numpy",
         "pytest",
+        "tabulate",
     ],
     entry_points={
         "console_scripts": [
