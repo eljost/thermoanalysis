@@ -10,13 +10,11 @@ from nicevibes.constants import C, ANG2M, AMU2KG, PLANCK, KB
 
 class QCData:
 
-    def __init__(self, log_fn,
-                 point_group="c1", scale_factor=1.0, solvent=None):
+    def __init__(self, log_fn, point_group="c1", scale_factor=1.0):
         self.log_fn = log_fn
 
         self.point_group = point_group.lower()
         self.scale_factor = scale_factor
-        self.solvent = solvent
 
         self.symmetry_number = self.get_symmetry_number()
 
