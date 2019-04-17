@@ -57,6 +57,6 @@ Dumped thermo-data to '05_dmso_hf_orca_freq_thermo.h5'.
 ```
 
 ## Some remarks
-Even though it does not (yet) implement all features of the `GoodVibes` the present implementation is not restricted to only Gaussian logs as `GoodVibes`. In principle all frequency calculations that can be parsed by cclib should be supported. Parsing of files that can't be handled by cclib could be implemented by deriving a new class from `QCData` and overwriting the `set_data(log_fn)` method to handle the specific format.
+Even though it does not (yet) implement all features of the original `GoodVibes` the present implementation is not restricted to Gaussian logs as `GoodVibes`. In principle all frequency calculations that can be parsed by cclib are supported. Parsing of files that can't be handled by cclib can easily be achived by reimplenting the `set_data(log_fn)`-method in subclass of QCData.
 
-Imaginary frequencies are neglected in the thermochemistry analysis.
+Imaginary frequencies are neglected in the thermochemistry calculations.

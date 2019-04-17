@@ -20,6 +20,12 @@ class QCData:
 
         self.set_data(self.log_fn)
 
+        assert self.coords3d.all()
+        assert self.wavenumbers.all()
+        assert self.scf_energy
+        assert self.masses.all()
+        assert self.mult
+
     def set_data(self, log_fn):
         parser = cclib.io.ccopen(log_fn)
         data = parser.parse()
