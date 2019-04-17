@@ -4,9 +4,17 @@
 # [2] https://doi.org/10.1002/chem.201200497
 # [3] https://doi.org/10.1021/acs.organomet.8b00456
 
+from collections import namedtuple
+
 import numpy as np
 
 from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
+
+
+ThermoResults = namedtuple(
+                    "ThermoResults",
+                    "U_trans U_rot U_vib ZPE S_trans S_rot S_vib S_el",
+)
 
 
 ##############
@@ -27,9 +35,9 @@ def electronic_entropy(multiplicity):
     Returns
     -------
     S_el : float
-        Electronic entropy.
+        Electronic entropy in J/mol.
     """
-    S_el = KB * np.log(multiplicity)
+    S_el = R * np.log(multiplicity)
     return S_el
 
 
@@ -46,14 +54,14 @@ def translation_energy(temperature):
     Parameters
     ----------
     temperature : float
-        Temperature in Kelvin.
+        Absolute temperature in Kelvin.
 
     Returns
     -------
     U_trans : float
-        Kinetic energy.
+        Kinetic energy in J/mol.
     """
-    U_trans = 3/2 * KB * temperature
+    U_trans = 3/2 * R * temperature
     return U_trans
 
 
@@ -72,7 +80,7 @@ def sackur_tetrode(molecular_mass, temperature):
     Returns
     -------
     S_trans : float
-        Translational entropy.
+        Translational entropy in J/(mol*K).
     """
     # Just using 1e5 instead of a "true" atmosphere of 1.01325e5 seems to
     # agree better with the results Gaussian and ORCA produce.
@@ -81,7 +89,7 @@ def sackur_tetrode(molecular_mass, temperature):
     q_trans = ((2*np.pi*molecular_mass*AMU2KG*KB*temperature/PLANCK**2)**(3/2)
                 * KB * temperature / pressure
     )
-    S_trans = KB*(np.log(q_trans) + 1 + 3/2)
+    S_trans = R*(np.log(q_trans) + 1 + 3/2)
     return S_trans
 
 
@@ -100,7 +108,7 @@ def sackur_tetrode_simplified(molecular_mass, temperature):
     Returns
     -------
     S_trans : float
-        Translational entropy.
+        Translational entropy in J/(mol*K).
     """
     S_trans = (  3/2 * R * np.log(molecular_mass)
                + 5/2 * R * np.log(temperature)
@@ -124,7 +132,7 @@ def translational_entropy(molecular_mass, temperature, kind="sackur"):
     Returns
     -------
     S_trans : float
-        Translational entropy.
+        Translational entropy in J/(mol*K).
     """
     funcs = {
         "sackur": sackur_tetrode,
@@ -155,14 +163,14 @@ def rotational_energy(temperature, is_linear, is_atom):
     Returns
     -------
     U_rot : float
-        Rotational energy.
+        Rotational energy in J/mol.
     """
     if is_atom:
         rot_energy = 0
     elif is_linear:
-        rot_energy = KB * temperature
+        rot_energy = R * temperature
 
-    U_rot = 3/2 * KB * temperature
+    U_rot = 3/2 * R * temperature
     return U_rot
 
 
@@ -176,7 +184,7 @@ def rotational_entropy(temperature, rot_temperatures, symmetry_number,
     ----------
     temperature : float
         Absolute temperature in Kelvin.
-    rot_temperatures : array-like of size 3
+    rot_temperatures : np.array of size 3
         Rotational temperatures in Kelvin.
     symmetry_number : int
         Symmetry number.
@@ -188,18 +196,18 @@ def rotational_entropy(temperature, rot_temperatures, symmetry_number,
     Returns
     -------
     S_rot : float
-        Rotational entropy.
+        Rotational entropy in J/(mol*K).
     """
     if is_atom:
         S_rot = 0
     if is_linear:
         q_rot = temperature / (rot_temperatures * symmetry_number)
-        S_rot = KB * (np.log(q_rot) + 1)
+        S_rot = R * (np.log(q_rot) + 1)
     # Polyamtomic, non-linear case
     q_rot = (np.pi**(1/2) / symmetry_number
              * (temperature**(3/2) / np.product(rot_temperatures)**(1/2))
     )
-    S_rot = KB * (np.log(q_rot) + 3/2)
+    S_rot = R * (np.log(q_rot) + 3/2)
     return S_rot
 
 
@@ -221,10 +229,10 @@ def zero_point_energy(frequencies):
     Returns
     -------
     ZPE : float
-        Vibrational zero point energy for the given frequencies.
+        Vibrational zero point energy for the given frequencies in J/mol.
     """
 
-    ZPE = (PLANCK * frequencies / 2).sum()
+    ZPE = NA * (PLANCK * frequencies / 2).sum()
     return ZPE
 
 
@@ -243,11 +251,11 @@ def vibrational_energy(temperature, frequencies):
     Returns
     -------
     U_vib : float
-        Vibrational energy.
+        Vibrational energy in J/mol.
     """
     vib_temperatures = PLANCK * frequencies / KB
-    U_vib =  KB * np.sum(vib_temperatures
-                         * (1/2 + 1 / (np.exp(vib_temperatures/temperature) - 1))
+    U_vib =  R * np.sum(vib_temperatures
+                        * (1/2 + 1 / (np.exp(vib_temperatures/temperature) - 1))
     )
     return U_vib
 
@@ -270,7 +278,7 @@ def harmonic_vibrational_entropies(temperature, frequencies):
     Returns
     -------
     S_vib : array-like
-        Array containing vibrational entropies.
+        Array containing vibrational entropies in J/(mol*K).
     """
 
     # Correct formula from the Grimme paper [3].
@@ -282,7 +290,7 @@ def harmonic_vibrational_entropies(temperature, frequencies):
 
     # As given in [1].
     vib_temps = frequencies * PLANCK / KB
-    S_vibs = KB * (
+    S_vibs = R * (
                 (vib_temps / temperature) / (np.exp(vib_temps/temperature) - 1)
                  - np.log(1 - np.exp(-vib_temps/temperature))
     )
@@ -306,11 +314,11 @@ def free_rotor_entropies(temperature, frequencies, B_av=1e-44):
     Returns
     -------
     S_free_rots : array-like
-        Array containing free-rotor entropies.
+        Array containing free-rotor entropies in J/(mol*K).
     """
     inertia_moments = PLANCK / (8 * np.pi**2 * frequencies)
     eff_inertia_moments = (inertia_moments * B_av) / (inertia_moments + B_av)
-    S_free_rots = KB * (
+    S_free_rots = R * (
         1/2 + np.log((8*np.pi**3*eff_inertia_moments*KB*temperature/PLANCK**2)**(1/2))
     )
     return S_free_rots
@@ -336,7 +344,7 @@ def vibrational_entropies(temperature, frequencies, cutoff=100, alpha=4):
     Returns
     -------
     S_vibs : array-like
-        Array containing vibrational entropies.
+        Array containing vibrational entropies in J/(mol*K).
     """
     wavenumbers = (frequencies / C) / 100
     weights = 1 / (1 + (cutoff/wavenumbers)**alpha)
@@ -366,13 +374,14 @@ def vibrational_entropy(temperature, frequencies, cutoff=100, alpha=4):
     Returns
     -------
     S_vib : float
-        Vibrational entropy.
+        Vibrational entropy in J/(mol*K).
     """
     return vibrational_entropies(temperature, frequencies, cutoff, alpha).sum()
 
 
-def thermochemistry(qc, temperature):
-    print(f"Thermochemistry with {temperature:.2f} K")
+def thermochemistry(qc, temperature, kind="qrrho"):
+    assert kind in "qrrho rrho".split()
+    print(f"Thermochemistry @ {temperature:.2f} K")
     J2au = lambda J: f"{J*J2AU:.8f} au"
     S2kcalmol = lambda S, T: f"{S*T*J2CAL*NA/1000:.8f} kcal/mol"
     S2calmol = lambda S: f"{S*J2CAL*NA:.8f} cal/(mol*K)"
@@ -380,7 +389,7 @@ def thermochemistry(qc, temperature):
     zpe = zero_point_energy(qc.vib_frequencies)
     print("ZPE", zpe, "J", f"{zpe*J2AU:.6f} au")
     U_trans = translation_energy(temperature)
-    print("U_trans", U_trans, J2au(U_trans))
+    print("U_trans", U_trans)
     U_rot = rotational_energy(temperature, qc.is_linear, qc.is_atom)
     print("U_rot", U_rot, J2au(U_rot))
     U_vib = vibrational_energy(temperature, qc.vib_frequencies)
@@ -392,20 +401,30 @@ def thermochemistry(qc, temperature):
 
     S_el = electronic_entropy(qc.mult)
     print("S_el", S_el)
-    # rts = np.array((0.30314, 0.29984, 0.18372))
     S_rot = rotational_entropy(temperature, qc.rot_temperatures, qc.symmetry_number,
                                qc.is_linear, qc.is_atom)
     print("S_rot", S_rot, S2kcalmol(S_rot, temperature), S2calmol(S_rot))
     S_trans = translational_entropy(qc.M, temperature)
     print("S_trans", S_trans, S2kcalmol(S_trans, temperature), S2calmol(S_trans))
 
-    S_hvibs = harmonic_vibrational_entropies(temperature, qc.vib_frequencies)
-    S_hvib = S_hvibs.sum()
-    print("S_hvib", S_hvib, S2kcalmol(S_hvib, temperature), S2calmol(S_hvib))
+    if kind == "rrho":
+        S_hvibs = harmonic_vibrational_entropies(temperature, qc.vib_frequencies)
+        S_vib = S_hvibs.sum()
+    elif kind == "qrrho":
+        S_vib = vibrational_entropy(temperature, qc.vib_frequencies)
+    else:
+        raise Exception("You should never get here!")
 
-    S_qvibs = free_rotor_entropies(temperature, qc.vib_frequencies)
-    S_qvib = S_qvibs.sum()
-    print("S_qvib", S_qvib, S2kcalmol(S_qvib, temperature), S2calmol(S_qvib))
-
-    S_vib = vibrational_entropy(temperature, qc.vib_frequencies)
     print("S_vib", S_vib, S2kcalmol(S_vib, temperature), S2calmol(S_vib))
+
+    thermo = ThermoResults(
+                U_trans,
+                U_rot,
+                U_vib,
+                zpe,
+                S_trans,
+                S_rot,
+                S_vib,
+                S_el,
+    )
+    return thermo
