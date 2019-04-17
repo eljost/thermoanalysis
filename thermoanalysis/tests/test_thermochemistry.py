@@ -5,9 +5,9 @@ from pathlib import Path
 
 from pytest import approx
 
-from nicevibes.constants import AU2J_MOL, KCAL2J, CAL2J
-from nicevibes.main import thermochemistry
-from nicevibes.QCData import QCData
+from thermoanalysis.constants import AU2J_MOL, KCAL2J, CAL2J
+from thermoanalysis.thermo import thermochemistry
+from thermoanalysis.QCData import QCData
 
 
 THIS_DIR = Path(os.path.abspath(os.path.dirname(__file__)))

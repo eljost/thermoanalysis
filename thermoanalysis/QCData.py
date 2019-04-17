@@ -5,7 +5,7 @@ import re
 import cclib
 import numpy as np
 
-from nicevibes.constants import C, ANG2M, AMU2KG, PLANCK, KB
+from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB
 
 
 class QCData:
@@ -28,6 +28,8 @@ class QCData:
         assert coords3d.shape[0] == 1
         self.coords3d = coords3d[0]
         self.wavenumbers = self.scale_factor * self.data.vibfreqs
+        # TODO: report imaginary frequencies
+        self.wavenumbers = self.wavenumbers[self.wavenumbers > 0]
         self.scf_energy = self.data.scfenergies[-1]
         self.masses = self.data.atommasses
         self._mult = self.data.mult
@@ -128,7 +130,7 @@ class QCData:
             return symm_dict[pg]
         except KeyError:
             pass
-        regex = "[cds](\d+)"
+        regex = r"[cds](\d+)"
         mobj = re.match(regex, pg)
         try:
             sym_num = int(mobj[1])

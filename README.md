@@ -31,3 +31,5 @@ nicevibes [log] --temp [298.15] --pg [c1]
 
 ## Some remarks
 Even though it does not implement all features of the `GoodVibes` the present implementation is not restricted to Gaussian. In principle all frequency calculations that can be parsed by cclib should be supported. Parsing of files that can be handled by cclib could be implemented by deriving a new class from `QCData` and overwriting the `set_data(log_fn)` method to handle the specific format.
+
+Imaginary frequencies are neglected in the thermochemistry analysis.

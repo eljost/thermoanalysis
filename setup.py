@@ -7,10 +7,10 @@ if sys.version_info.major < 3:
     raise SystemExit("Python 3 is required!")
 
 setup(
-    name="nicevibes",
+    name="thermoanalysis",
     version="0.1",
     description="Do themochemistry analysis.",
-    url="https://github.com/eljost/nicevibes",
+    url="https://github.com/eljost/thermoanalysis",
     maintainer="Johannes Steinmetzer",
     maintainer_email="johannes.steinmetzer@uni-jena.de",
     license="GPL 3",
@@ -22,7 +22,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "nicevibes = nicevibes.main:run",
+            "thermo = thermoanalysis.main:run",
         ]
     },
 )

@@ -8,7 +8,7 @@ from collections import namedtuple
 
 import numpy as np
 
-from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
+from thermoanalysis.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
 
 
 ThermoResults = namedtuple(

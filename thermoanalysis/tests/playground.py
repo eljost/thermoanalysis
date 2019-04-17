@@ -3,13 +3,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from nicevibes.constants import NA, C
-from nicevibes.main import (thermochemistry, print_thermo_results,
-                            sackur_tetrode_simplified,
-                            harmonic_vibrational_entropies,
-                            free_rotor_entropies,
-                            vibrational_entropies)
-from nicevibes.QCData import QCData
+from thermoanalysis.constants import NA, C
+from thermoanalysis.thermo import (thermochemistry, print_thermo_results,
+                                   sackur_tetrode_simplified,
+                                   harmonic_vibrational_entropies,
+                                   free_rotor_entropies,
+                                   vibrational_entropies)
+from thermoanalysis.QCData import QCData
 
 
 np.set_printoptions(precision=6)
