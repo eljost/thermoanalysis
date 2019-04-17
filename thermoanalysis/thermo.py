@@ -14,8 +14,10 @@ from thermoanalysis.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
 ThermoResults = namedtuple(
                     "ThermoResults",
                     ("T "
-                     "ZPE U_trans U_rot U_vib therm_corr "
+                     "ZPE U_trans U_rot U_vib U_tot "
                      "S_trans S_rot S_vib S_el S_tot "
+                     "TS_trans TS_rot TS_vib TS_el TS_tot "
+                     "M "
                     ),
 )
 
@@ -384,25 +386,26 @@ def vibrational_entropy(temperature, frequencies, cutoff=100, alpha=4):
 
 def thermochemistry(qc, temperature, kind="qrrho"):
     assert kind in "qrrho rrho".split()
+    T = temperature
 
     zpe = zero_point_energy(qc.vib_frequencies)
-    U_trans = translation_energy(temperature)
-    U_rot = rotational_energy(temperature, qc.is_linear, qc.is_atom)
-    U_vib = vibrational_energy(temperature, qc.vib_frequencies)
+    U_trans = translation_energy(T)
+    U_rot = rotational_energy(T, qc.is_linear, qc.is_atom)
+    U_vib = vibrational_energy(T, qc.vib_frequencies)
 
     # ZPE isn't included here as it is already included in the U_vib term
-    therm_corr = U_rot + U_vib + U_trans
+    U_tot = U_rot + U_vib + U_trans
 
     S_el = electronic_entropy(qc.mult)
-    S_rot = rotational_entropy(temperature, qc.rot_temperatures, qc.symmetry_number,
+    S_rot = rotational_entropy(T, qc.rot_temperatures, qc.symmetry_number,
                                qc.is_linear, qc.is_atom)
-    S_trans = translational_entropy(qc.M, temperature)
+    S_trans = translational_entropy(qc.M, T)
 
     if kind == "rrho":
-        S_hvibs = harmonic_vibrational_entropies(temperature, qc.vib_frequencies)
+        S_hvibs = harmonic_vibrational_entropies(T, qc.vib_frequencies)
         S_vib = S_hvibs.sum()
     elif kind == "qrrho":
-        S_vib = vibrational_entropy(temperature, qc.vib_frequencies)
+        S_vib = vibrational_entropy(T, qc.vib_frequencies)
     else:
         raise Exception("You should never get here!")
     S_tot = S_el + S_trans + S_rot + S_vib
@@ -413,12 +416,18 @@ def thermochemistry(qc, temperature, kind="qrrho"):
                 U_trans,
                 U_rot,
                 U_vib,
-                therm_corr,
+                U_tot,
                 S_trans,
                 S_rot,
                 S_vib,
                 S_el,
                 S_tot,
+                T*S_trans,
+                T*S_rot,
+                T*S_vib,
+                T*S_el,
+                T*S_tot,
+                M=qc.M,
     )
     return thermo
 
@@ -435,8 +444,8 @@ def print_thermo_results(thermo_results):
     print("U_trans", J2KJ(tr.U_trans))
     print("U_rot", J2KJ(tr.U_rot))
     print("U_vib", J2KJ(tr.U_vib))
-    print("thermal_corr = U_trans + U_rot + U_vib")
-    print("thermal_corr", J2KJ(tr.therm_corr))
+    print("U_tot = U_trans + U_rot + U_vib")
+    print("U_tot", J2KJ(tr.U_tot))
     print()
 
     print("S_el", S2KJ(tr.S_el, T))

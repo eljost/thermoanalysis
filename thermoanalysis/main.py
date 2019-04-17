@@ -11,11 +11,21 @@ from thermoanalysis.QCData import QCData
 
 
 def print_thermos(thermos):
-    headers = thermos[0]._fields
-    thermos_arr = np.array(thermos)
+    fields = ("T U_trans U_rot U_vib U_tot "
+              "TS_el TS_trans TS_rot TS_vib TS_tot".split()
+    )
+    filtered = list()
+    for thermo in thermos:
+        _ = [getattr(thermo, f) for f in fields]
+        filtered.append(_)
+
+    headers = fields
+    thermos_arr = np.array(filtered)
     thermos_arr[:,1:] /= 1000
     table = tabulate(thermos_arr, headers=headers, floatfmt=".2f")
     print("All quantities given in kJ/mol except T (given in K).")
+    print(f"ZPE = {thermos[0].ZPE / 1000:.2f} kJ/mol (independent of T)")
+    print("U_vib include the ZPE.")
     print(table)
 
 
@@ -62,12 +72,12 @@ def run():
         temps = np.linspace(*args.temps)
         qc = QCData(log, point_group=point_group, scale_factor=scale)
         thermos = [thermochemistry(qc, T, kind=vib_kind) for T in temps]
-        print_thermos(thermos)
     else:
         T = args.temp
         qc = QCData(log, point_group=point_group, scale_factor=scale)
         thermo = thermochemistry(qc, T, kind=vib_kind)
-        print_thermo_results(thermo)
+        thermos = [thermo, ]
+    print_thermos(thermos)
 
 
 if __name__ == "__main__":
