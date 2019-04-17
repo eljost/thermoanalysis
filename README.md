@@ -21,13 +21,13 @@ Until cclib 1.6.2 is released this patch [Correct parsing of vibrational frequen
 
 ## Running tests
 ```
-# Can be started from any directory after installation of thermoanalysis
-pytest --pyargs nicevibes
+# Can be executed from any directory after installation of thermoanalysis
+pytest --pyargs thermoanalysis
 ```
 
 ## Usage
 ```
-nicevibes [log] --temp [298.15] --pg [c1]
+thermo [log] --temp [298.15] --pg [c1]
 ```
 
 ## Some remarks

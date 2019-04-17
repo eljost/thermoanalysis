@@ -9,7 +9,9 @@ from thermoanalysis.QCData import QCData
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
     parser.add_argument("log",
         help="Path to the log file containing the frequency calculation."
@@ -22,7 +24,7 @@ def parse_args(args):
              "determination of the symmetry number in the calculation "
              "of rotational terms.")
     parser.add_argument("--scale", default=1.0, type=float,
-        help="Scaling factor for vibrational frequencies (default=1.0)."
+        help="Scaling factor for vibrational frequencies."
     )
     parser.add_argument("--vibs", choices="rrho qrrho".split(), default="qrrho",
         help="Wether to use Grimmes QRRHO approach ('qrrho') or an purely "
