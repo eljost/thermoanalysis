@@ -12,12 +12,14 @@ from thermoanalysis.thermo import (thermochemistry, print_thermo_results,
 from thermoanalysis.QCData import QCData
 
 
-np.set_printoptions(precision=6)
-
-
 def run():
-    # log = "logs/04_dmso_hf_freq.log"
     log = "logs/05_dmso_hf_orca_freq.out"
+    qc = QCData(log, point_group="c1")
+    T = 298.15
+    thermo = thermochemistry(qc, T)
+    print_thermo_results(thermo)
+
+    log = "logs/04_dmso_hf_freq.log"
     qc = QCData(log, point_group="c1")
     T = 298.15
     thermo = thermochemistry(qc, T)
@@ -61,7 +63,7 @@ def plot_vibrational_entropies():
     fig, ax = plt.subplots()
 
     T = 298.15
-    wavenumbers = np.linspace(0, 350, 100) * 100 # in m^-1
+    wavenumbers = np.linspace(1, 350, 100) * 100 # in m^-1
     freqs = C*wavenumbers
 
     S_hvibs = harmonic_vibrational_entropies(T, freqs)
@@ -70,11 +72,12 @@ def plot_vibrational_entropies():
     alpha = 4
     S_vibs = vibrational_entropies(T, freqs, cutoff, alpha)
 
-    ax.plot(wavenumbers/100, S_hvibs*NA, label="harmonic")
-    ax.plot(wavenumbers/100, S_qvibs*NA, label="quasi")
-    ax.plot(wavenumbers/100, S_vibs*NA, label="weighted")
+    ax.plot(wavenumbers/100, S_hvibs, label="harmonic")
+    ax.plot(wavenumbers/100, S_qvibs, label="quasi")
+    ax.plot(wavenumbers/100, S_vibs, label="weighted")
     ax.set_xlabel("mode frequency / cm$^{-1}$")
     ax.set_ylabel("entropy / J mol$^{-1}$ K$^{-1}$")
+    ax.set_xlim(0, wavenumbers.max()/100)
     ax.legend()
     plt.show()
 

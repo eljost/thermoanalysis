@@ -23,9 +23,9 @@ def print_thermos(thermos):
     thermos_arr = np.array(filtered)
     thermos_arr[:,1:] /= 1000
     table = tabulate(thermos_arr, headers=headers, floatfmt=".2f")
-    print("All quantities given in kJ/mol except T (given in K).")
     print(f"ZPE = {thermos[0].ZPE / 1000:.2f} kJ/mol (independent of T)")
-    print("U_vib include the ZPE.")
+    print("U_vib and U_tot already include the ZPE.")
+    print("All quantities given in kJ/mol except T (given in K).")
     print(table)
 
 
@@ -67,6 +67,8 @@ def run():
     point_group = args.pg
     scale = args.scale
     vib_kind = args.vibs
+
+    print(f"Using {vib_kind.upper()}-approach for vibrational entropies.")
 
     if args.temps:
         temps = np.linspace(*args.temps)
