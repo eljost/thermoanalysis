@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
+from pathlib import Path
 import sys
 
 import numpy as np
+import h5py
+import pandas as pd
 from tabulate import tabulate
 
 from thermoanalysis.thermo import thermochemistry, print_thermo_results
@@ -27,6 +30,16 @@ def print_thermos(thermos):
     print("U_vib and U_tot already include the ZPE.")
     print("All quantities given in kJ/mol except T (given in K).")
     print(table)
+
+
+def dump_thermos(log_fn, thermos):
+    log_path = Path(log_fn)
+    df = pd.DataFrame(thermos)
+    h5_fn = f"{log_path.stem}_thermo.h5"
+    with h5py.File(h5_fn, "w") as handle:
+        for thermo in thermos:
+            handle.create_dataset(name=f"{thermo.T:.4f}", dtype=float, data=thermo)
+    print(f"Dumped thermo-data to '{h5_fn}'.")
 
 
 def parse_args(args):
@@ -79,7 +92,9 @@ def run():
         qc = QCData(log, point_group=point_group, scale_factor=scale)
         thermo = thermochemistry(qc, T, kind=vib_kind)
         thermos = [thermo, ]
+
     print_thermos(thermos)
+    dump_thermos(log, thermos)
 
 
 if __name__ == "__main__":

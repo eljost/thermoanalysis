@@ -19,6 +19,7 @@ setup(
     install_requires=[
         "cclib",
         "numpy",
+        "h5py",
         "pytest",
         "tabulate",
     ],

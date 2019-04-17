@@ -10,7 +10,10 @@ The program is inspired by the nice [GoodVibes](https://github.com/bobbypaton/Go
 ```
 python3.6+
 cclib
+h5py
 numpy
+pytest
+tabulate
 ```
 
 ## Installation
