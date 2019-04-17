@@ -26,7 +26,7 @@ class QCData:
         parser = cclib.io.ccopen(log_fn)
         data = parser.parse()
         self.data = data
-        coords3d = self.data.atomcoords  # * ANG2AU
+        coords3d = self.data.atomcoords  # in Angstrom
         assert coords3d.shape[0] == 1
         self.coords3d = coords3d[0]
         self.wavenumbers = self.scale_factor * self.data.vibfreqs
@@ -36,28 +36,68 @@ class QCData:
 
     @property
     def M(self):
-        """Molecular mass."""
+        """Molecular mass.
+
+        Returns
+        -------
+        M : float
+            Total molecular mass in amu.
+        """
         return self.masses.sum()
 
     @property
     def mult(self):
-        """Multiplicity."""
+        """Multiplicity.
+
+        Returns
+        -------
+        2S+1 : int
+            Multiplicity.
+        """
         return self._mult
 
     @property
     def vib_frequencies(self):
+        """Vibrational frequencies.
+
+        Returns
+        -------
+        vibfreqs : np.array
+            Vibrational frequencies in 1/s.
+        """
         return C * self.wavenumbers * 100
 
     @property
     def is_linear(self):
+        """Wether the molecule is linear.
+
+        Returns
+        -------
+        is_linear : bool
+            Wether the molecule is linear.
+        """
         return self.point_group in ("cinf", "dinfh")
 
     @property
     def is_atom(self):
+        """Wether the 'molecule' consists of only an atom.
+
+        Returns
+        -------
+        is_atoms : bool
+            Wether the molecule is only one atom.
+        """
         return len(self.masses) == 1
 
     @property
     def rot_temperatures(self):
+        """Rotational temperatures in K.
+
+        Returns
+        -------
+        rot_temps : np.array
+            Rotational temperatures in K.
+        """
         self.standard_orientation()
         I = self.inertia_tensor() * ANG2M**2 * AMU2KG
         w, v = np.linalg.eigh(I)
@@ -65,6 +105,13 @@ class QCData:
         return rot_temps
 
     def get_symmetry_number(self, point_group=None):
+        """Symmetry number for rotatioanl partiton function.
+
+        Returns
+        -------
+        symmetry_number : int
+            Symmetry number for calculation of rotational terms.
+        """
         symm_dict = {
             "c1": 1,
             "ci": 1,
@@ -105,6 +152,10 @@ class QCData:
                               | x² xy xz |
         (x y z)^T . (x y z) = | xy y² yz |
                               | xz yz z² |
+        Returns
+        -------
+        I : np.array, shape (3, 3)
+            Ineratia tensor  in units of Angstrom² * amu.
         """
         x, y, z = self.coords3d.T
         squares = np.sum(self.coords3d**2 * self.masses[:, None], axis=0)
@@ -127,8 +178,8 @@ class QCData:
 
         Returns
         -------
-        R : np.array, shape(3, )
-            Center of mass.
+        R : np.array, shape (3, )
+            Center of mass in Angstrom.
         """
         return 1/self.M * np.sum(self.coords3d*self.masses[:, None],
                                  axis=0)
@@ -151,11 +202,10 @@ class QCData:
         """
         I = self.inertia_tensor()
         w, v = np.linalg.eigh(I)
-        # rot = np.linalg.solve(v, np.eye(3))
-        # self.coords3d = rot.dot(self.coords3d.T).T
         self.coords3d = v.T.dot(self.coords3d.T).T
 
     def standard_orientation(self):
+        """Bring molecule in standard orientation."""
         # Translate center of mass to cartesian origin
         self.coords3d -= self.center_of_mass
         # Try to rotate the principal axes onto the cartesian axes
