@@ -418,7 +418,6 @@ def thermochemistry(qc, temperature, kind="qrrho"):
                 S_el,
                 S_tot,
                 temperature,
-
     )
     return thermo
 
@@ -435,11 +434,13 @@ def print_thermo_results(thermo_results):
     print("U_trans", J2KJ(tr.U_trans))
     print("U_rot", J2KJ(tr.U_rot))
     print("U_vib", J2KJ(tr.U_vib))
-
+    print("thermal_corr = U_trans + U_rot + U_vib")
     print("thermal_corr", J2KJ(tr.therm_corr))
+    print()
 
     print("S_el", S2KJ(tr.S_el, T))
     print("S_trans", S2KJ(tr.S_trans, T))
     print("S_rot", S2KJ(tr.S_rot, T))
     print("S_vib", S2KJ(tr.S_vib, T))
+    print("S_tot = S_el + S_trans + S_rot + S_vib")
     print("S_tot", S2KJ(tr.S_tot, T))
