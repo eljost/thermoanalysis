@@ -16,7 +16,8 @@ np.set_printoptions(precision=6)
 
 
 def run():
-    log = "logs/04_dmso_hf_freq.log"
+    # log = "logs/04_dmso_hf_freq.log"
+    log = "logs/05_dmso_hf_orca_freq.out"
     qc = QCData(log, point_group="c1")
     T = 298.15
     thermo = thermochemistry(qc, T)
