@@ -13,7 +13,9 @@ from nicevibes.constants import C, KB, NA, R, PLANCK, J2AU, J2CAL, AMU2KG
 
 ThermoResults = namedtuple(
                     "ThermoResults",
-                    "U_trans U_rot U_vib ZPE S_trans S_rot S_vib S_el",
+                    ("ZPE U_trans U_rot U_vib therm_corr "
+                     "S_trans S_rot S_vib S_el S_tot "
+                     "T"),
 )
 
 
@@ -381,31 +383,19 @@ def vibrational_entropy(temperature, frequencies, cutoff=100, alpha=4):
 
 def thermochemistry(qc, temperature, kind="qrrho"):
     assert kind in "qrrho rrho".split()
-    print(f"Thermochemistry @ {temperature:.2f} K")
-    J2au = lambda J: f"{J*J2AU:.8f} au"
-    S2kcalmol = lambda S, T: f"{S*T*J2CAL*NA/1000:.8f} kcal/mol"
-    S2calmol = lambda S: f"{S*J2CAL*NA:.8f} cal/(mol*K)"
 
     zpe = zero_point_energy(qc.vib_frequencies)
-    print("ZPE", zpe, "J", f"{zpe*J2AU:.6f} au")
     U_trans = translation_energy(temperature)
-    print("U_trans", U_trans)
     U_rot = rotational_energy(temperature, qc.is_linear, qc.is_atom)
-    print("U_rot", U_rot, J2au(U_rot))
     U_vib = vibrational_energy(temperature, qc.vib_frequencies)
-    print("U_vib", U_vib, J2au(U_vib))
 
     # ZPE isn't included here as it is already included in the U_vib term
     therm_corr = U_rot + U_vib + U_trans
-    print("thermal_corr", therm_corr, J2au(therm_corr))
 
     S_el = electronic_entropy(qc.mult)
-    print("S_el", S_el)
     S_rot = rotational_entropy(temperature, qc.rot_temperatures, qc.symmetry_number,
                                qc.is_linear, qc.is_atom)
-    print("S_rot", S_rot, S2kcalmol(S_rot, temperature), S2calmol(S_rot))
     S_trans = translational_entropy(qc.M, temperature)
-    print("S_trans", S_trans, S2kcalmol(S_trans, temperature), S2calmol(S_trans))
 
     if kind == "rrho":
         S_hvibs = harmonic_vibrational_entropies(temperature, qc.vib_frequencies)
@@ -414,17 +404,42 @@ def thermochemistry(qc, temperature, kind="qrrho"):
         S_vib = vibrational_entropy(temperature, qc.vib_frequencies)
     else:
         raise Exception("You should never get here!")
-
-    print("S_vib", S_vib, S2kcalmol(S_vib, temperature), S2calmol(S_vib))
+    S_tot = S_el + S_trans + S_rot + S_vib
 
     thermo = ThermoResults(
+                zpe,
                 U_trans,
                 U_rot,
                 U_vib,
-                zpe,
+                therm_corr,
                 S_trans,
                 S_rot,
                 S_vib,
                 S_el,
+                S_tot,
+                temperature,
+
     )
     return thermo
+
+
+def print_thermo_results(thermo_results):
+    J2KJ = lambda J: f"{J/1000:.2f} kJ/mol"
+    S2KJ = lambda S, T: f"{S*T/1000:.2f} kJ/mol"
+
+    tr = thermo_results
+    T = tr.T
+    print(f"Thermochemistry @ {T:.2f} K")
+
+    print("ZPE", J2KJ(tr.ZPE))
+    print("U_trans", J2KJ(tr.U_trans))
+    print("U_rot", J2KJ(tr.U_rot))
+    print("U_vib", J2KJ(tr.U_vib))
+
+    print("thermal_corr", J2KJ(tr.therm_corr))
+
+    print("S_el", S2KJ(tr.S_el, T))
+    print("S_trans", S2KJ(tr.S_trans, T))
+    print("S_rot", S2KJ(tr.S_rot, T))
+    print("S_vib", S2KJ(tr.S_vib, T))
+    print("S_tot", S2KJ(tr.S_tot, T))

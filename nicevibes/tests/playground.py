@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from nicevibes.constants import NA, C
-from nicevibes.main import (thermochemistry, sackur_tetrode_simplified,
+from nicevibes.main import (thermochemistry, print_thermo_results,
+                            sackur_tetrode_simplified,
                             harmonic_vibrational_entropies,
                             free_rotor_entropies,
                             vibrational_entropies)
@@ -18,7 +19,8 @@ def run():
     log = "logs/04_dmso_hf_freq.log"
     qc = QCData(log, point_group="c1")
     T = 298.15
-    thermochemistry(qc, T)
+    thermo = thermochemistry(qc, T)
+    print_thermo_results(thermo)
 
 
 def get_V_free(solvent="chloroform", C_free=8):
