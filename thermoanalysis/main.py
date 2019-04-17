@@ -15,9 +15,10 @@ from thermoanalysis.QCData import QCData
 
 
 def print_thermos(thermos):
-    fields = ("T U_el U_trans U_rot U_vib H "
-              "TS_el TS_trans TS_rot TS_vib TS_tot G".split()
-    )
+    # fields = ("T U_el U_trans U_rot U_vib H "
+              # "TS_el TS_trans TS_rot TS_vib TS_tot G".split()
+    # )
+    fields = "T U_el U_therm U_tot H TS_tot G".split()
     filtered = list()
     for thermo in thermos:
         _ = [getattr(thermo, f) for f in fields]
@@ -25,7 +26,7 @@ def print_thermos(thermos):
 
     headers = fields
     thermos_arr = np.array(filtered)
-    float_fmts = [".4f"] * len(fields)
+    float_fmts = [".6f"] * len(fields)
     float_fmts[0] = ".2f"
     table = tabulate(thermos_arr, headers=headers, floatfmt=float_fmts)
     print(f"ZPE = {thermos[0].ZPE:.6f} au / particle (independent of T)")

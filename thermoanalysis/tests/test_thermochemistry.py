@@ -46,17 +46,17 @@ def test_orca_thermochemistry():
     thermo = thermochemistry(qc, T, kind="qrrho")
 
     zpe_ref = 0.08393782
-    assert thermo.ZPE == approx(zpe_ref, rel=1e-3)
+    assert thermo.ZPE == approx(zpe_ref)
 
     u_trans_ref = 0.00141627
-    assert thermo.U_trans == approx(u_trans_ref, rel=1e-3)
+    assert thermo.U_trans == approx(u_trans_ref, rel=1e-5)
     u_rot_ref = 0.00141627
-    assert thermo.U_rot == approx(u_rot_ref, rel=1e-3)
+    assert thermo.U_rot == approx(u_rot_ref, rel=1e-5)
 
     s_el_ref = 0.
     assert thermo.S_el == approx(s_el_ref)
     s_trans_ref = 0.01852169
-    assert (thermo.S_trans*T) == approx(s_trans_ref, rel=1e-1)
+    assert (thermo.S_trans*T) == approx(s_trans_ref, rel=1e-3)
     s_rot_ref = 0.01092172
     assert (thermo.S_rot*T) == approx(s_rot_ref, rel=1e-1)
     s_vib_ref = 0.00546508
