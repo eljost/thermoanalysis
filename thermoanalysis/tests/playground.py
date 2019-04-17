@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from thermoanalysis.constants import NA, C
+from thermoanalysis.constants import NA, C, J2AU
 from thermoanalysis.thermo import (thermochemistry, print_thermo_results,
                                    sackur_tetrode_simplified,
                                    harmonic_vibrational_entropies,
@@ -72,9 +72,9 @@ def plot_vibrational_entropies():
     alpha = 4
     S_vibs = vibrational_entropies(T, freqs, cutoff, alpha)
 
-    ax.plot(wavenumbers/100, S_hvibs, label="harmonic")
-    ax.plot(wavenumbers/100, S_qvibs, label="quasi")
-    ax.plot(wavenumbers/100, S_vibs, label="weighted")
+    ax.plot(wavenumbers/100, S_hvibs/J2AU*NA, label="harmonic")
+    ax.plot(wavenumbers/100, S_qvibs/J2AU*NA, label="quasi")
+    ax.plot(wavenumbers/100, S_vibs/J2AU*NA, label="weighted")
     ax.set_xlabel("mode frequency / cm$^{-1}$")
     ax.set_ylabel("entropy / J mol$^{-1}$ K$^{-1}$")
     ax.set_xlim(0, wavenumbers.max()/100)
@@ -84,5 +84,5 @@ def plot_vibrational_entropies():
 
 if __name__ == "__main__":
     run()
-    # plot_s_trans()
-    # plot_vibrational_entropies()
+    plot_s_trans()
+    plot_vibrational_entropies()

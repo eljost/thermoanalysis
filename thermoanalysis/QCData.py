@@ -5,7 +5,7 @@ import re
 import cclib
 import numpy as np
 
-from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB
+from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB, AU2EV
 
 
 class QCData:
@@ -30,7 +30,7 @@ class QCData:
         self.wavenumbers = self.scale_factor * self.data.vibfreqs
         # TODO: report imaginary frequencies
         self.wavenumbers = self.wavenumbers[self.wavenumbers > 0]
-        self.scf_energy = self.data.scfenergies[-1]
+        self.scf_energy = self.data.scfenergies[-1] / AU2EV
         self.masses = self.data.atommasses
         self._mult = self.data.mult
 

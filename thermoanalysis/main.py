@@ -9,13 +9,14 @@ import h5py
 import pandas as pd
 from tabulate import tabulate
 
+from thermoanalysis.constants import NA, J2AU
 from thermoanalysis.thermo import thermochemistry, print_thermo_results
 from thermoanalysis.QCData import QCData
 
 
 def print_thermos(thermos):
-    fields = ("T U_trans U_rot U_vib U_tot "
-              "TS_el TS_trans TS_rot TS_vib TS_tot".split()
+    fields = ("T U_el U_trans U_rot U_vib H "
+              "TS_el TS_trans TS_rot TS_vib TS_tot G".split()
     )
     filtered = list()
     for thermo in thermos:
@@ -24,11 +25,12 @@ def print_thermos(thermos):
 
     headers = fields
     thermos_arr = np.array(filtered)
-    thermos_arr[:,1:] /= 1000
-    table = tabulate(thermos_arr, headers=headers, floatfmt=".2f")
-    print(f"ZPE = {thermos[0].ZPE / 1000:.2f} kJ/mol (independent of T)")
+    float_fmts = [".4f"] * len(fields)
+    float_fmts[0] = ".2f"
+    table = tabulate(thermos_arr, headers=headers, floatfmt=float_fmts)
+    print(f"ZPE = {thermos[0].ZPE:.6f} au / particle (independent of T)")
     print("U_vib and U_tot already include the ZPE.")
-    print("All quantities given in kJ/mol except T (given in K).")
+    print("All quantities given in au / particle except T (given in K).")
     print(table)
 
 
