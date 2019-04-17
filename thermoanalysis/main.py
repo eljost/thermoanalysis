@@ -86,15 +86,12 @@ def run():
 
     print(f"Using {vib_kind.upper()}-approach for vibrational entropies.")
 
+    qc = QCData(log, point_group=point_group, scale_factor=scale)
     if args.temps:
         temps = np.linspace(*args.temps)
-        qc = QCData(log, point_group=point_group, scale_factor=scale)
-        thermos = [thermochemistry(qc, T, kind=vib_kind) for T in temps]
     else:
-        T = args.temp
-        qc = QCData(log, point_group=point_group, scale_factor=scale)
-        thermo = thermochemistry(qc, T, kind=vib_kind)
-        thermos = [thermo, ]
+        temps = [T, ]
+    thermos = [thermochemistry(qc, T, kind=vib_kind) for T in temps]
 
     print_thermos(thermos)
     dump_thermos(log, thermos)
