@@ -61,3 +61,32 @@ def test_orca_thermochemistry():
     assert (thermo.S_rot*T) == approx(s_rot_ref, rel=1e-1)
     s_vib_ref = 0.00546508
     assert (thermo.S_vib*T) == approx(s_vib_ref, rel=1e-4)
+
+
+def test_orca42_thermochemistry():
+    log = str(THIS_DIR / "logs/01_alkin_000.007.orca.out")
+    qc = QCData(log, point_group="c1")
+    T = 298.15
+    thermo = thermochemistry(qc, T, kind="qrrho")
+
+    # import pdb; pdb.set_trace()
+    zpe_ref = 0.15505609
+    assert thermo.ZPE == approx(zpe_ref, rel=1e-5)
+
+    u_trans_ref = 0.00141627
+    assert thermo.U_trans == approx(u_trans_ref, rel=1e-5)
+    u_rot_ref = 0.00141627
+    assert thermo.U_rot == approx(u_rot_ref, rel=1e-5)
+
+    s_el_ref = 0.
+    assert thermo.S_el == approx(s_el_ref)
+    s_trans_ref = 0.01953842
+    assert (thermo.S_trans*T) == approx(s_trans_ref, rel=1e-3)
+    s_rot_ref = 0.01479918
+    assert (thermo.S_rot*T) == approx(s_rot_ref, rel=1e-1)
+    s_vib_ref = 0.01433560
+    assert (thermo.S_vib*T) == approx(s_vib_ref, rel=1e-3)
+
+
+if __name__ == "__main__":
+    test_orca42_thermochemistry()
