@@ -80,6 +80,7 @@ def run():
     args = parse_args(sys.argv[1:])
 
     log = args.log
+    T = args.temp
     point_group = args.pg
     scale = args.scale
     vib_kind = args.vibs
