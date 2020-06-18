@@ -418,51 +418,53 @@ def thermochemistry(qc, temperature, kind="qrrho"):
     dG = G - U_el
 
     thermo = ThermoResults(
-                temperature,
-                qc.M,
-                U_el,
-                U_trans,
-                U_rot,
-                U_vib,
-                U_therm,
-                U_tot,
-                zpe,
-                H,
-                S_trans,
-                S_rot,
-                S_vib,
-                S_el,
-                S_tot,
-                T*S_trans,
-                T*S_rot,
-                T*S_vib,
-                T*S_el,
-                T*S_tot,
-                G,
-                dG,
+                T=temperature,
+                M=qc.M,
+                U_el=U_el,
+                U_trans=U_trans,
+                U_rot=U_rot,
+                U_vib=U_vib,
+                U_therm=U_therm,
+                U_tot=U_tot,
+                ZPE=zpe,
+                H=H,
+                S_trans=S_trans,
+                S_rot=S_rot,
+                S_vib=S_vib,
+                S_el=S_el,
+                S_tot=S_tot,
+                TS_trans=T*S_trans,
+                TS_rot=T*S_rot,
+                TS_vib=T*S_vib,
+                TS_el=T*S_el,
+                TS_tot=T*S_tot,
+                G=G,
+                dG=dG,
     )
     return thermo
 
 
 def print_thermo_results(thermo_results):
-    J2KJ = lambda J: f"{J/1000:.2f} kJ/mol"
-    S2KJ = lambda S, T: f"{S*T/1000:.2f} kJ/mol"
+    au2CalMol = 1 / J2AU * NA * J2CAL
+    toCalMol = lambda E: f"{E*au2CalMol:.2f} cal/mol"
+    StoCalKMol = lambda S: f"{S*au2CalMol:.2f} cal/(K mol)"
 
     tr = thermo_results
     T = tr.T
     print(f"Thermochemistry @ {T:.2f} K")
 
-    print("ZPE", J2KJ(tr.ZPE))
-    print("U_trans", J2KJ(tr.U_trans))
-    print("U_rot", J2KJ(tr.U_rot))
-    print("U_vib", J2KJ(tr.U_vib))
-    print("U_tot = U_trans + U_rot + U_vib")
-    print("U_tot", J2KJ(tr.U_tot))
+    print("ZPE", toCalMol(tr.ZPE))
+    print("U_trans", toCalMol(tr.U_trans))
+    print("U_rot", toCalMol(tr.U_rot))
+    print("U_vib", toCalMol(tr.U_vib))
+    print("U_therm", toCalMol(tr.U_therm))
+    print("U_tot = U_el + U_trans + U_rot + U_vib")
+    print("U_tot", toCalMol(tr.U_tot))
     print()
 
-    print("S_el", S2KJ(tr.S_el, T))
-    print("S_trans", S2KJ(tr.S_trans, T))
-    print("S_rot", S2KJ(tr.S_rot, T))
-    print("S_vib", S2KJ(tr.S_vib, T))
+    print("S_el", StoCalKMol(tr.S_el))
+    print("S_trans", StoCalKMol(tr.S_trans))
+    print("S_rot", StoCalKMol(tr.S_rot))
+    print("S_vib", StoCalKMol(tr.S_vib))
     print("S_tot = S_el + S_trans + S_rot + S_vib")
-    print("S_tot", S2KJ(tr.S_tot, T))
+    print("S_tot", StoCalKMol(tr.S_tot))
