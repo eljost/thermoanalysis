@@ -15,9 +15,6 @@ from thermoanalysis.QCData import QCData
 
 
 def print_thermos(thermos):
-    # fields = ("T U_el U_trans U_rot U_vib H "
-              # "TS_el TS_trans TS_rot TS_vib TS_tot G".split()
-    # )
     fields = "T U_el U_therm U_tot H TS_tot G dG".split()
     filtered = list()
     for thermo in thermos:
@@ -50,8 +47,9 @@ def parse_args(args):
                 formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument("log",
-        help="Path to the log file containing the frequency calculation."
+    parser.add_argument("inp_fn",
+        help="Path to log file containing the frequency calculation or "
+             "an HDF5 hessian from pysisyphus."
     )
     temp_group = parser.add_mutually_exclusive_group()
     temp_group.add_argument("--temp", default=298.15, type=float,
@@ -79,7 +77,7 @@ def parse_args(args):
 def run():
     args = parse_args(sys.argv[1:])
 
-    log = args.log
+    inp_fn = args.inp_fn
     T = args.temp
     point_group = args.pg
     scale = args.scale
@@ -87,7 +85,7 @@ def run():
 
     print(f"Using {vib_kind.upper()}-approach for vibrational entropies.")
 
-    qc = QCData(log, point_group=point_group, scale_factor=scale)
+    qc = QCData(inp_fn, point_group=point_group, scale_factor=scale)
     if args.temps:
         temps = np.linspace(*args.temps)
     else:
@@ -95,7 +93,7 @@ def run():
     thermos = [thermochemistry(qc, T, kind=vib_kind) for T in temps]
 
     print_thermos(thermos)
-    dump_thermos(log, thermos)
+    dump_thermos(inp_fn, thermos)
 
 
 if __name__ == "__main__":
