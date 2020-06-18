@@ -61,7 +61,6 @@ def test_orca42_thermochemistry(this_dir):
     T = 298.15
     thermo = thermochemistry(qc, T, kind="qrrho")
 
-    # import pdb; pdb.set_trace()
     zpe_ref = 0.15505609
     assert thermo.ZPE == approx(zpe_ref, rel=1e-5)
 
