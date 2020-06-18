@@ -86,7 +86,3 @@ def test_orca42_thermochemistry():
     assert (thermo.S_rot*T) == approx(s_rot_ref, rel=1e-1)
     s_vib_ref = 0.01433560
     assert (thermo.S_vib*T) == approx(s_vib_ref, rel=1e-3)
-
-
-if __name__ == "__main__":
-    test_orca42_thermochemistry()
