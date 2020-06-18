@@ -31,12 +31,13 @@ class QCData:
         data = parser.parse()
         self.data = data
         coords3d = self.data.atomcoords  # in Angstrom
-        assert coords3d.shape[0] == 1
-        self.coords3d = coords3d[0]
+        # assert coords3d.shape[0] == 1
+        self.coords3d = coords3d[-1]
         self.wavenumbers = self.scale_factor * self.data.vibfreqs
         # TODO: report imaginary frequencies
         self.wavenumbers = self.wavenumbers[self.wavenumbers > 0]
         self.scf_energy = self.data.scfenergies[-1] / AU2EV
+        assert self.data.scfenergies.shape[0] == self.data.atomcoords.shape[0]
         self.masses = self.data.atommasses
         self._mult = self.data.mult
 
