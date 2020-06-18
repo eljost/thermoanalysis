@@ -19,7 +19,7 @@ def test_g16_thermochemistry(this_dir):
     u_rot_ref = 0.889 * KCAL_MOL2AU
     assert thermo.U_rot == approx(u_rot_ref, rel=1e-3)
     u_vib_ref = 54.676 * KCAL_MOL2AU
-    assert thermo.U_vib == approx(u_vib_ref, rel=1e-1)
+    assert thermo.U_vib == approx(u_vib_ref, rel=1e-3)
 
     s_el_ref = 0. * CAL_MOL2AU
     assert thermo.S_el == approx(s_el_ref)
@@ -74,6 +74,6 @@ def test_orca42_thermochemistry(this_dir):
     s_trans_ref = 0.01953842
     assert (thermo.S_trans*T) == approx(s_trans_ref, rel=1e-3)
     s_rot_ref = 0.01479918
-    assert (thermo.S_rot*T) == approx(s_rot_ref, rel=1e-1)
+    assert (thermo.S_rot*T) == approx(s_rot_ref, rel=1e-5)
     s_vib_ref = 0.01433560
     assert (thermo.S_vib*T) == approx(s_vib_ref, rel=1e-3)
