@@ -94,6 +94,7 @@ def run():
 
     print_thermos(thermos)
     dump_thermos(inp_fn, thermos)
+    # print_thermo_results(thermos[0])
 
 
 if __name__ == "__main__":
