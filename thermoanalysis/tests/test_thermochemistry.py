@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-
-import os
-from pathlib import Path
-
 from pytest import approx
 
 from thermoanalysis.constants import AU2J_MOL, KCAL2J, CAL2J, CAL_MOL2AU, KCAL_MOL2AU
@@ -10,11 +5,8 @@ from thermoanalysis.thermo import thermochemistry
 from thermoanalysis.QCData import QCData
 
 
-THIS_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
-
-
-def test_g16_thermochemistry():
-    log = str(THIS_DIR / "logs/04_dmso_hf_freq.log")
+def test_g16_thermochemistry(this_dir):
+    log = this_dir / "logs/04_dmso_hf_freq.log"
     qc = QCData(log, point_group="c1")
     T = 298.15
     thermo = thermochemistry(qc, T, kind="rrho")
@@ -39,8 +31,8 @@ def test_g16_thermochemistry():
     assert (thermo.S_vib) == approx(s_vib_ref, rel=1e-3)
 
 
-def test_orca_thermochemistry():
-    log = str(THIS_DIR / "logs/05_dmso_hf_orca_freq.out")
+def test_orca_thermochemistry(this_dir):
+    log = this_dir / "logs/05_dmso_hf_orca_freq.out"
     qc = QCData(log, point_group="c1")
     T = 298.15
     thermo = thermochemistry(qc, T, kind="qrrho")
@@ -63,8 +55,8 @@ def test_orca_thermochemistry():
     assert (thermo.S_vib*T) == approx(s_vib_ref, rel=1e-4)
 
 
-def test_orca42_thermochemistry():
-    log = str(THIS_DIR / "logs/01_alkin_000.007.orca.out")
+def test_orca42_thermochemistry(this_dir):
+    log = this_dir / "logs/01_alkin_000.007.orca.out"
     qc = QCData(log, point_group="c1")
     T = 298.15
     thermo = thermochemistry(qc, T, kind="qrrho")
