@@ -11,7 +11,7 @@ from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB, AU2EV
 class QCData:
 
     def __init__(self, log_fn, point_group="c1", scale_factor=1.0):
-        self.log_fn = log_fn
+        self.log_fn = str(log_fn)
 
         self.point_group = point_group.lower()
         self.scale_factor = scale_factor
