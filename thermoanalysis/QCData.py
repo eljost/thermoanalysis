@@ -3,43 +3,55 @@
 import re
 
 import cclib
+import h5py
 import numpy as np
 
-from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB, AU2EV
+from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB, AU2EV, ANG2AU
 
 
 class QCData:
 
-    def __init__(self, log_fn, point_group="c1", scale_factor=1.0):
-        self.log_fn = str(log_fn)
+    def __init__(self, inp_fn, point_group="c1", scale_factor=1.0):
 
+        self.fn = str(inp_fn)
         self.point_group = point_group.lower()
         self.scale_factor = scale_factor
-
         self.symmetry_number = self.get_symmetry_number()
 
-        self.set_data(self.log_fn)
+        if self.fn.endswith(".h5"):
+            self.set_pysis_hess_data(self.fn)
+        else:
+            self.set_data(self.fn)
 
-        assert self.coords3d.all()
-        assert self.wavenumbers.all()
-        assert self.scf_energy
-        assert self.masses.all()
-        assert self.mult
+        must_have = "coords3d wavenumbers scf_energy masses mult".split()
+        missing = [not hasattr(self, name) for name in must_have]
+        if any(missing):
+            print(missing, "is missing!")
 
-    def set_data(self, log_fn):
-        parser = cclib.io.ccopen(log_fn)
+        self.wavenumbers *= self.scale_factor
+        self.wavenumbers = self.wavenumbers[self.wavenumbers > 10.]
+
+    def set_data(self, inp_fn):
+        parser = cclib.io.ccopen(inp_fn)
         data = parser.parse()
         self.data = data
         coords3d = self.data.atomcoords  # in Angstrom
         # assert coords3d.shape[0] == 1
         self.coords3d = coords3d[-1]
-        self.wavenumbers = self.scale_factor * self.data.vibfreqs
-        # TODO: report imaginary frequencies
-        self.wavenumbers = self.wavenumbers[self.wavenumbers > 0]
+        self.wavenumbers = self.data.vibfreqs
         self.scf_energy = self.data.scfenergies[-1] / AU2EV
         assert self.data.scfenergies.shape[0] == self.data.atomcoords.shape[0]
         self.masses = self.data.atommasses
         self._mult = self.data.mult
+
+    def set_pysis_hess_data(self, fn):
+        with h5py.File(fn, "r") as handle:
+            self.masses = handle["masses"][:]
+            self.wavenumbers = handle["vibfreqs"][:]
+            # From Bohr to Angstrom
+            self.coords3d = handle["coords3d"][:] / ANG2AU
+            self.scf_energy = handle.attrs["energy"]
+            self._mult = 1
 
     @property
     def M(self):
@@ -188,8 +200,7 @@ class QCData:
         R : np.array, shape (3, )
             Center of mass in Angstrom.
         """
-        return 1/self.M * np.sum(self.coords3d*self.masses[:, None],
-                                 axis=0)
+        return 1/self.M * np.sum(self.coords3d*self.masses[:, None], axis=0)
 
     def principal_axes_are_aligned(self):
         """Check if the principal axes are aligned with the cartesian axes.
