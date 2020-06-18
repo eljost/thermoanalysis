@@ -11,16 +11,19 @@ from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB, AU2EV, ANG2AU
 
 class QCData:
 
-    def __init__(self, inp_fn, point_group="c1", scale_factor=1.0):
+    def __init__(self, inp, point_group="c1", scale_factor=1.0):
 
-        self.fn = str(inp_fn)
         self.point_group = point_group.lower()
         self.scale_factor = scale_factor
         self.symmetry_number = self.get_symmetry_number()
 
-        if self.fn.endswith(".h5"):
+        if isinstance(inp, dict):
+            self.set_pysis_dict_data(inp)
+        elif str(inp).endswith(".h5"):
+            self.fn = str(inp)
             self.set_pysis_hess_data(self.fn)
         else:
+            self.fn = str(inp)
             self.set_data(self.fn)
 
         must_have = "coords3d wavenumbers scf_energy masses mult".split()
@@ -28,15 +31,19 @@ class QCData:
         if any(missing):
             print(missing, "is missing!")
 
-        self.wavenumbers *= self.scale_factor
-        self.wavenumbers = self.wavenumbers[self.wavenumbers > 10.]
-
         self.standard_orientation()
         I = self.inertia_tensor()
         w, v = np.linalg.eigh(I)
         self._linear = (abs(w[0]) < 1e-8) and (abs(w[1] - w[2]) < 1e-8)
         if self._linear:
             print("Found linear molecule based on its inertia tensor")
+        skip_freqs = 5 if self._linear else 6
+
+        self.wavenumbers *= self.scale_factor
+        if len(self.wavenumbers) == self.coords3d.size:
+            self.wavenumbers = self.wavenumbers[skip_freqs:]
+
+        assert len(self.wavenumbers) == (self.coords3d.size - skip_freqs)
 
     def set_data(self, inp_fn):
         parser = cclib.io.ccopen(inp_fn)
@@ -58,7 +65,15 @@ class QCData:
             # From Bohr to Angstrom
             self.coords3d = handle["coords3d"][:] / ANG2AU
             self.scf_energy = handle.attrs["energy"]
-            self._mult = 1
+            self._mult = handle.attrs["mult"]
+
+    def set_pysis_dict_data(self, inp_dict):
+        self.masses = inp_dict["masses"]
+        self.wavenumbers = inp_dict["vibfreqs"]
+        # From Bohr to Angstrom
+        self.coords3d = inp_dict["coords3d"][:] / ANG2AU
+        self.scf_energy = inp_dict["energy"]
+        self._mult = inp_dict["mult"]
 
     @property
     def M(self):
