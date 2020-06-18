@@ -31,6 +31,13 @@ class QCData:
         self.wavenumbers *= self.scale_factor
         self.wavenumbers = self.wavenumbers[self.wavenumbers > 10.]
 
+        self.standard_orientation()
+        I = self.inertia_tensor()
+        w, v = np.linalg.eigh(I)
+        self._linear = (abs(w[0]) < 1e-8) and (abs(w[1] - w[2]) < 1e-8)
+        if self._linear:
+            print("Found linear molecule based on its inertia tensor")
+
     def set_data(self, inp_fn):
         parser = cclib.io.ccopen(inp_fn)
         data = parser.parse()
@@ -95,7 +102,8 @@ class QCData:
         is_linear : bool
             Wether the molecule is linear.
         """
-        return self.point_group in ("cinf", "dinfh")
+        # return self.point_group in ("cinf", "dinfh")
+        return self._linear
 
     @property
     def is_atom(self):
