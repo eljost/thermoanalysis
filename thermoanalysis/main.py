@@ -15,7 +15,7 @@ from thermoanalysis.QCData import QCData
 
 
 def print_thermos(thermos):
-    fields = "T U_el U_therm U_tot H TS_tot G dG".split()
+    fields = "T p U_el U_therm U_tot H TS_tot G dG".split()
     filtered = list()
     for thermo in thermos:
         _ = [getattr(thermo, f) for f in fields]
@@ -25,10 +25,11 @@ def print_thermos(thermos):
     thermos_arr = np.array(filtered)
     float_fmts = [".6f"] * len(fields)
     float_fmts[0] = ".2f"
+    float_fmts[1] = ".4e"
     table = tabulate(thermos_arr, headers=headers, floatfmt=float_fmts)
     print(f"ZPE = {thermos[0].ZPE:.6f} au / particle (independent of T)")
     print("U_vib and U_tot already include the ZPE.")
-    print("All quantities given in au / particle except T (given in K).")
+    print("All quantities given in au / particle except T (in K) and p (in Pa).")
     print(table)
 
 
@@ -70,6 +71,9 @@ def parse_args(args):
         help="Wether to use Grimmes QRRHO approach ('qrrho') or an purely "
              "harmonic approach ('rrho') for the calculation of vibrational entropy."
     )
+    parser.add_argument("--pressure", "-p", type=float, default=1e5,
+        help="Pressure in Pascal."
+    )
 
     return parser.parse_args(args)
 
@@ -79,6 +83,7 @@ def run():
 
     inp_fn = args.inp_fn
     T = args.temp
+    pressure = args.pressure
     point_group = args.pg
     scale = args.scale
     vib_kind = args.vibs
@@ -90,11 +95,10 @@ def run():
         temps = np.linspace(*args.temps)
     else:
         temps = [T, ]
-    thermos = [thermochemistry(qc, T, kind=vib_kind) for T in temps]
+    thermos = [thermochemistry(qc, T, pressure=pressure, kind=vib_kind) for T in temps]
 
     print_thermos(thermos)
     dump_thermos(inp_fn, thermos)
-    # print_thermo_results(thermos[0])
 
 
 if __name__ == "__main__":
