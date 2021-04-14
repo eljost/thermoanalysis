@@ -20,6 +20,7 @@ setup(
         "cclib",
         "numpy",
         "h5py",
+        "pandas",
         "pytest",
         "tabulate",
     ],
