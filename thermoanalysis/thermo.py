@@ -3,6 +3,7 @@
 # [1] http://gaussian.com/thermo/
 # [2] https://doi.org/10.1002/chem.201200497
 # [3] https://doi.org/10.1021/acs.organomet.8b00456
+# [4] https://cccbdb.nist.gov/thermo.asp
 
 from collections import namedtuple
 
@@ -24,7 +25,8 @@ from thermoanalysis.constants import (
 ThermoResults = namedtuple(
     "ThermoResults",
     (
-        "T M p "
+        "T kBT M p "
+        "point_group sym_num "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
         "TS_trans TS_rot TS_vib TS_el TS_tot G dG"
@@ -222,16 +224,19 @@ def rotational_entropy(
     """
     if is_atom:
         S_rot = 0
-    if is_linear:
-        q_rot = temperature / (rot_temperatures * symmetry_number)
-        S_rot = R * (np.log(q_rot) + 1)
-    # Polyamtomic, non-linear case
-    q_rot = (
-        np.pi ** (1 / 2)
-        / symmetry_number
-        * (temperature ** (3 / 2) / np.product(rot_temperatures) ** (1 / 2))
-    )
-    S_rot = KBAU * (np.log(q_rot) + 3 / 2)
+    elif is_linear:
+        # First rot_temperature will be infinite, and the last two components
+        # will be identical. Only use the last one.
+        q_rot = temperature / (rot_temperatures[-1] * symmetry_number)
+        S_rot = KBAU * (np.log(q_rot) + 1)
+    else:
+        # Polyamtomic, non-linear case
+        q_rot = (
+            np.pi ** (1 / 2)
+            / symmetry_number
+            * (temperature ** (3 / 2) / np.product(rot_temperatures) ** (1 / 2))
+        )
+        S_rot = KBAU * (np.log(q_rot) + 3 / 2)
     return S_rot
 
 
@@ -443,8 +448,11 @@ def thermochemistry(qc, temperature, pressure=1e5, kind="qrrho"):
 
     thermo = ThermoResults(
         T=temperature,
+        kBT=KBAU*temperature,
         M=qc.M,
         p=pressure,
+        point_group=qc.point_group,
+        sym_num=qc.symmetry_number,
         U_el=U_el,
         U_trans=U_trans,
         U_rot=U_rot,
