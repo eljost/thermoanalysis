@@ -9,7 +9,7 @@ if sys.version_info.major < 3:
 setup(
     name="thermoanalysis",
     version="0.1",
-    description="Do themochemistry analysis.",
+    description="Thermochemistry from QC program logs with cclib.",
     url="https://github.com/eljost/thermoanalysis",
     maintainer="Johannes Steinmetzer",
     maintainer_email="johannes.steinmetzer@uni-jena.de",
