@@ -40,10 +40,12 @@ class QCData:
         skip_freqs = 5 if self._linear else 6
 
         self.wavenumbers *= self.scale_factor
-        if len(self.wavenumbers) == self.coords3d.size:
-            self.wavenumbers = self.wavenumbers[skip_freqs:]
+        # Drop imaginary frequencies
+        self.wavenumbers = self.wavenumbers[self.wavenumbers > 0.0]
+        # if len(self.wavenumbers) == self.coords3d.size:
+            # self.wavenumbers = self.wavenumbers[skip_freqs:]
 
-        assert len(self.wavenumbers) == (self.coords3d.size - skip_freqs)
+        # assert len(self.wavenumbers) == (self.coords3d.size - skip_freqs)
 
     def set_data(self, inp_fn):
         parser = cclib.io.ccopen(inp_fn)
