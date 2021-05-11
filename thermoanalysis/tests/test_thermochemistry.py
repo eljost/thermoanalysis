@@ -77,3 +77,14 @@ def test_orca42_thermochemistry(this_dir):
     assert (thermo.S_rot*T) == approx(s_rot_ref, rel=1e-5)
     s_vib_ref = 0.01433560
     assert (thermo.S_vib*T) == approx(s_vib_ref, rel=1e-3)
+
+
+def test_orca42_benzaldehyde(this_dir):
+    log = "logs/06_benzaldehyde_b973c_orca_gas.out"
+    qc = QCData(log, point_group="c1")
+    T = 298.15
+    thermo = thermochemistry(qc, T, kind="qrrho")
+
+    dG = thermo.dG
+    dG_ref = 0.10897713
+    assert thermo.dG == approx(dG_ref, abs=2e-5)
