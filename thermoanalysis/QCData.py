@@ -34,8 +34,8 @@ class QCData:
         I = self.inertia_tensor()
         w, v = np.linalg.eigh(I)
         self._linear = (abs(w[0]) < 1e-8) and (abs(w[1] - w[2]) < 1e-8)
-        if self._linear:
-            print("Found linear molecule based on its inertia tensor")
+        # if self._linear:
+            # print("Found linear molecule based on its inertia tensor")
         skip_freqs = 5 if self._linear else 6
 
         self.wavenumbers *= self.scale_factor

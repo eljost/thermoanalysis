@@ -25,7 +25,7 @@ from thermoanalysis.constants import (
 ThermoResults = namedtuple(
     "ThermoResults",
     (
-        "T kBT M p "
+        "T kBT M p wavenumbers "
         "point_group sym_num "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
@@ -453,6 +453,7 @@ def thermochemistry(qc, temperature, pressure=1e5, kind="qrrho"):
         p=pressure,
         point_group=qc.point_group,
         sym_num=qc.symmetry_number,
+        wavenumbers=qc.wavenumbers,
         U_el=U_el,
         U_trans=U_trans,
         U_rot=U_rot,
