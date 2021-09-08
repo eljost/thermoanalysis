@@ -10,7 +10,6 @@ from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB, AU2EV, ANG2AU
 
 
 class QCData:
-
     def __init__(self, inp, point_group="c1", scale_factor=1.0):
 
         self.point_group = point_group.lower()
@@ -143,9 +142,9 @@ class QCData:
             Rotational temperatures in K.
         """
         self.standard_orientation()
-        I = self.inertia_tensor() * ANG2M**2 * AMU2KG
+        I = self.inertia_tensor() * ANG2M ** 2 * AMU2KG
         w, v = np.linalg.eigh(I)
-        rot_temps = PLANCK**2/(8*np.pi**2*w*KB)
+        rot_temps = PLANCK ** 2 / (8 * np.pi ** 2 * w * KB)
         return rot_temps
 
     def get_symmetry_number(self, point_group=None):
@@ -185,9 +184,11 @@ class QCData:
             sym_num *= 2
         elif pg.startswith("s"):
             sym_num /= 2
-        assert sym_num == int(sym_num), "Check your point group! Did you " \
-            "specify some 'Sn' group with n ∈ (1, 3, 5, ...)? Please use " \
+        assert sym_num == int(sym_num), (
+            "Check your point group! Did you "
+            "specify some 'Sn' group with n ∈ (1, 3, 5, ...)? Please use "
             "the corresponding 'Cnm' groups instead!"
+        )
         return sym_num
 
     def inertia_tensor(self):
@@ -202,18 +203,14 @@ class QCData:
             Ineratia tensor  in units of Angstrom² * amu.
         """
         x, y, z = self.coords3d.T
-        squares = np.sum(self.coords3d**2 * self.masses[:, None], axis=0)
+        squares = np.sum(self.coords3d ** 2 * self.masses[:, None], axis=0)
         I_xx = squares[1] + squares[2]
         I_yy = squares[0] + squares[2]
         I_zz = squares[0] + squares[1]
-        I_xy = -np.sum(self.masses*x*y)
-        I_xz = -np.sum(self.masses*x*z)
-        I_yz = -np.sum(self.masses*y*z)
-        I = np.array((
-                (I_xx, I_xy, I_xz),
-                (I_xy, I_yy, I_yz),
-                (I_xz, I_yz, I_zz)
-        ))
+        I_xy = -np.sum(self.masses * x * y)
+        I_xz = -np.sum(self.masses * x * z)
+        I_yz = -np.sum(self.masses * y * z)
+        I = np.array(((I_xx, I_xy, I_xz), (I_xy, I_yy, I_yz), (I_xz, I_yz, I_zz)))
         return I
 
     @property
@@ -225,7 +222,7 @@ class QCData:
         R : np.array, shape (3, )
             Center of mass in Angstrom.
         """
-        return 1/self.M * np.sum(self.coords3d*self.masses[:, None], axis=0)
+        return 1 / self.M * np.sum(self.coords3d * self.masses[:, None], axis=0)
 
     def principal_axes_are_aligned(self):
         """Check if the principal axes are aligned with the cartesian axes.
@@ -252,7 +249,7 @@ class QCData:
         # Translate center of mass to cartesian origin
         self.coords3d -= self.center_of_mass
         # Try to rotate the principal axes onto the cartesian axes
-        for i in range(5):
+        for _ in range(5):
             self.align_principal_axes()
             aligned, vecs = self.principal_axes_are_aligned()
             if aligned:

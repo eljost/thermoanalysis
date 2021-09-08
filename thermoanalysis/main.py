@@ -9,8 +9,7 @@ import h5py
 import pandas as pd
 from tabulate import tabulate
 
-from thermoanalysis.constants import NA, J2AU
-from thermoanalysis.thermo import thermochemistry, print_thermo_results
+from thermoanalysis.thermo import thermochemistry
 from thermoanalysis.QCData import QCData
 
 
@@ -45,34 +44,51 @@ def dump_thermos(log_fn, thermos):
 
 def parse_args(args):
     parser = argparse.ArgumentParser(
-                formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument("inp_fn",
+    parser.add_argument(
+        "inp_fn",
         help="Path to log file containing the frequency calculation or "
-             "an HDF5 hessian from pysisyphus."
+        "an HDF5 hessian from pysisyphus.",
     )
     temp_group = parser.add_mutually_exclusive_group()
-    temp_group.add_argument("--temp", default=298.15, type=float,
-        help="Temperature for the thermochemistry analysis in K."
+    temp_group.add_argument(
+        "--temp",
+        default=298.15,
+        type=float,
+        help="Temperature for the thermochemistry analysis in K.",
     )
-    temp_group.add_argument("--temps", nargs=3, type=float, default=None,
+    temp_group.add_argument(
+        "--temps",
+        nargs=3,
+        type=float,
+        default=None,
         metavar=("T_start", "T_end", "steps"),
         help="Determine thermochemistry data for a range of temperatures.",
     )
-    parser.add_argument("--pg", default="c1",
+    parser.add_argument(
+        "--pg",
+        default="c1",
         help="Point group of the molecule. Important for the correct "
-             "determination of the symmetry number in the calculation "
-             "of rotational terms.")
-    parser.add_argument("--scale", default=1.0, type=float,
-        help="Scaling factor for vibrational frequencies."
+        "determination of the symmetry number in the calculation "
+        "of rotational terms.",
     )
-    parser.add_argument("--vibs", choices="rrho qrrho".split(), default="qrrho",
+    parser.add_argument(
+        "--scale",
+        default=1.0,
+        type=float,
+        help="Scaling factor for vibrational frequencies.",
+    )
+    parser.add_argument(
+        "--vibs",
+        choices="rrho qrrho".split(),
+        default="qrrho",
         help="Wether to use Grimmes QRRHO approach ('qrrho') or an purely "
-             "harmonic approach ('rrho') for the calculation of vibrational entropy."
+        "harmonic approach ('rrho') for the calculation of vibrational entropy.",
     )
-    parser.add_argument("--pressure", "-p", type=float, default=1e5,
-        help="Pressure in Pascal."
+    parser.add_argument(
+        "--pressure", "-p", type=float, default=1e5, help="Pressure in Pascal."
     )
 
     return parser.parse_args(args)
@@ -94,7 +110,9 @@ def run():
     if args.temps:
         temps = np.linspace(*args.temps)
     else:
-        temps = [T, ]
+        temps = [
+            T,
+        ]
     thermos = [thermochemistry(qc, T, pressure=pressure, kind=vib_kind) for T in temps]
 
     print_thermos(thermos)
