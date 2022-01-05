@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# [1] https://pubs.acs.org/doi/10.1021/acs.jctc.0c01306
+#     Single-Point Hessian Calculations
+#     Spicher, Grimme, 2021
 
 import re
 
@@ -10,10 +12,11 @@ from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB, AU2EV, ANG2AU
 
 
 class QCData:
-    def __init__(self, inp, point_group="c1", scale_factor=1.0):
+    def __init__(self, inp, point_group="c1", scale_factor=1.0, invert_imags=None):
 
         self.point_group = point_group.lower()
         self.scale_factor = scale_factor
+        self.invert_imags = invert_imags
         self.symmetry_number = self.get_symmetry_number()
 
         if isinstance(inp, dict):
@@ -35,16 +38,22 @@ class QCData:
         w, v = np.linalg.eigh(I)
         self._linear = (abs(w[0]) < 1e-8) and (abs(w[1] - w[2]) < 1e-8)
         # if self._linear:
-            # print("Found linear molecule based on its inertia tensor")
+        # print("Found linear molecule based on its inertia tensor")
         skip_freqs = 5 if self._linear else 6
 
         self.wavenumbers *= self.scale_factor
         if len(self.wavenumbers) == self.coords3d.size:
             self.wavenumbers = self.wavenumbers[skip_freqs:]
-        # Also drop imaginary frequencies
-        self.wavenumbers = self.wavenumbers[self.wavenumbers > 0.0]
+        # Invert small imaginary frequencies
+        # [1] suggests inverting imaginary frequencies above -20 cm⁻¹
+        if self.invert_imags is not None:
+            to_invert = np.logical_and(
+                self.invert_imags <= self.wavenumbers, self.wavenumbers <= 0.0
+            )
+            self.wavenumbers[to_invert] *= -1
 
-        # assert len(self.wavenumbers) == (self.coords3d.size - skip_freqs)
+        # Drop remaining small (big absolute values) imaginary frequencies
+        self.wavenumbers = self.wavenumbers[self.wavenumbers > 0.0]
 
     def set_data(self, inp_fn):
         parser = cclib.io.ccopen(inp_fn)

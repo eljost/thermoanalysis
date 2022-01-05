@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # [1] http://gaussian.com/thermo/
 # [2] https://doi.org/10.1002/chem.201200497
 # [3] https://doi.org/10.1021/acs.organomet.8b00456
@@ -20,6 +18,7 @@ from thermoanalysis.constants import (
     J2CAL,
     AMU2KG,
 )
+from thermoanalysis.config import ROTOR_CUT_DEFAULT
 
 
 ThermoResults = namedtuple(
@@ -412,7 +411,9 @@ def vibrational_entropy(temperature, frequencies, cutoff=100, alpha=4):
     return vibrational_entropies(temperature, frequencies, cutoff, alpha).sum()
 
 
-def thermochemistry(qc, temperature, pressure=1e5, kind="qrrho"):
+def thermochemistry(
+    qc, temperature, pressure=1e5, kind="qrrho", rotor_cutoff=ROTOR_CUT_DEFAULT
+):
     assert kind in "qrrho rrho".split()
     T = temperature
     pressure = pressure
@@ -439,7 +440,7 @@ def thermochemistry(qc, temperature, pressure=1e5, kind="qrrho"):
         S_hvibs = harmonic_vibrational_entropies(T, qc.vib_frequencies)
         S_vib = S_hvibs.sum()
     elif kind == "qrrho":
-        S_vib = vibrational_entropy(T, qc.vib_frequencies)
+        S_vib = vibrational_entropy(T, qc.vib_frequencies, cutoff=rotor_cutoff)
     else:
         raise Exception("You should never get here!")
     S_tot = S_el + S_trans + S_rot + S_vib
@@ -448,7 +449,7 @@ def thermochemistry(qc, temperature, pressure=1e5, kind="qrrho"):
 
     thermo = ThermoResults(
         T=temperature,
-        kBT=KBAU*temperature,
+        kBT=KBAU * temperature,
         M=qc.M,
         p=pressure,
         point_group=qc.point_group,

@@ -9,6 +9,7 @@ import h5py
 import pandas as pd
 from tabulate import tabulate
 
+from thermoanalysis.config import p_DEFAULT, ROTOR_CUT_DEFAULT, T_DEFAULT
 from thermoanalysis.thermo import thermochemistry
 from thermoanalysis.QCData import QCData
 
@@ -26,6 +27,10 @@ def print_thermos(thermos):
     float_fmts[0] = ".2f"
     float_fmts[1] = ".4e"
     table = tabulate(thermos_arr, headers=headers, floatfmt=float_fmts)
+    print("Wavenumbers in cm⁻¹")
+    for i, nu in enumerate(thermo.wavenumbers):
+        print(f"{i: >05d}: {nu:>12.4f}")
+    print(f"Total mass = {thermos[0].M:.2f} amu")
     print(f"ZPE = {thermos[0].ZPE:.6f} au / particle (independent of T)")
     print("U_vib and U_tot already include the ZPE.")
     print("All quantities given in au / particle except T (in K) and p (in Pa).")
@@ -34,11 +39,12 @@ def print_thermos(thermos):
 
 def dump_thermos(log_fn, thermos):
     log_path = Path(log_fn)
-    df = pd.DataFrame(thermos)
+    # columns =
+    df = pd.DataFrame(
+        thermos,
+    ).drop(columns=["wavenumbers", "point_group"])
     h5_fn = f"{log_path.stem}_thermo.h5"
-    with h5py.File(h5_fn, "w") as handle:
-        for thermo in thermos:
-            handle.create_dataset(name=f"{thermo.T:.4f}", dtype=float, data=thermo)
+    df.to_hdf(h5_fn, key=f"thermo")
     print(f"Dumped thermo-data to '{h5_fn}'.")
 
 
@@ -55,7 +61,7 @@ def parse_args(args):
     temp_group = parser.add_mutually_exclusive_group()
     temp_group.add_argument(
         "--temp",
-        default=298.15,
+        default=T_DEFAULT,
         type=float,
         help="Temperature for the thermochemistry analysis in K.",
     )
@@ -88,7 +94,19 @@ def parse_args(args):
         "harmonic approach ('rrho') for the calculation of vibrational entropy.",
     )
     parser.add_argument(
-        "--pressure", "-p", type=float, default=1e5, help="Pressure in Pascal."
+        "--qrrho-cutoff",
+        default=ROTOR_CUT_DEFAULT,
+        type=float,
+        help="Rotor cutoff value for Grimmes modified QRRHO approach.",
+    )
+    parser.add_argument(
+        "--pressure", "-p", type=float, default=p_DEFAULT, help="Pressure in Pascal."
+    )
+    parser.add_argument(
+        "--invert-imags",
+        type=float,
+        default=None,
+        help="Invert imaginary frequencies bigger or equal to the threshold.",
     )
 
     return parser.parse_args(args)
@@ -103,17 +121,34 @@ def run():
     point_group = args.pg
     scale = args.scale
     vib_kind = args.vibs
+    rotor_cutoff = args.qrrho_cutoff
+    invert_imags = args.invert_imags
 
-    print(f"Using {vib_kind.upper()}-approach for vibrational entropies.")
+    print(
+        f"Using {vib_kind.upper()}-approach for vibrational entropies"
+        + (f" with cutoff {rotor_cutoff:.2f} cm⁻¹" if vib_kind == "qrrho" else "")
+        + "."
+    )
 
-    qc = QCData(inp_fn, point_group=point_group, scale_factor=scale)
+    qc = QCData(
+        inp_fn,
+        point_group=point_group,
+        scale_factor=scale,
+        invert_imags=invert_imags,
+    )
     if args.temps:
-        temps = np.linspace(*args.temps)
+        T_init, T_final, steps = args.temps
+        temps = np.linspace(T_init, T_final, int(steps))
     else:
         temps = [
             T,
         ]
-    thermos = [thermochemistry(qc, T, pressure=pressure, kind=vib_kind) for T in temps]
+    thermos = [
+        thermochemistry(
+            qc, T, pressure=pressure, kind=vib_kind, rotor_cutoff=rotor_cutoff
+        )
+        for T in temps
+    ]
 
     print_thermos(thermos)
     dump_thermos(inp_fn, thermos)
