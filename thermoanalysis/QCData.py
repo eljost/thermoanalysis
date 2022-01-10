@@ -53,7 +53,9 @@ class QCData:
             self.wavenumbers[to_invert] *= -1
 
         # Drop remaining small (big absolute values) imaginary frequencies
-        self.wavenumbers = self.wavenumbers[self.wavenumbers > 0.0]
+        imag_mask = self.wavenumbers < 0.0
+        self.imag_wavenumbers = self.wavenumbers[imag_mask]
+        self.wavenumbers = self.wavenumbers[~imag_mask]
 
     def set_data(self, inp_fn):
         parser = cclib.io.ccopen(inp_fn)
