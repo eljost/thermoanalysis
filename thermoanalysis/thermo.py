@@ -25,7 +25,7 @@ ThermoResults = namedtuple(
     "ThermoResults",
     (
         "T kBT M p wavenumbers "
-        "point_group sym_num "
+        "atom_num linear point_group sym_num "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
         "TS_trans TS_rot TS_vib TS_el TS_tot G dG"
@@ -455,6 +455,8 @@ def thermochemistry(
         point_group=qc.point_group,
         sym_num=qc.symmetry_number,
         wavenumbers=qc.wavenumbers,
+        atom_num=qc.atom_num,
+        linear=qc.is_linear,
         U_el=U_el,
         U_trans=U_trans,
         U_rot=U_rot,

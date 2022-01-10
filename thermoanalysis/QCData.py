@@ -86,6 +86,10 @@ class QCData:
         self._mult = inp_dict["mult"]
 
     @property
+    def atom_num(self):
+        return len(self.masses)
+
+    @property
     def M(self):
         """Molecular mass.
 
