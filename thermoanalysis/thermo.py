@@ -24,7 +24,8 @@ from thermoanalysis.config import ROTOR_CUT_DEFAULT
 ThermoResults = namedtuple(
     "ThermoResults",
     (
-        "T kBT M p imag_wavenumbers wavenumbers "
+        "T kBT M p "
+        "imag_wavenumbers wavenumbers wavenumbers_org "
         "atom_num linear point_group sym_num "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
@@ -456,6 +457,7 @@ def thermochemistry(
         sym_num=qc.symmetry_number,
         imag_wavenumbers=qc.imag_wavenumbers,
         wavenumbers=qc.wavenumbers,
+        wavenumbers_org=qc.wavenumbers_org,
         atom_num=qc.atom_num,
         linear=qc.is_linear,
         U_el=U_el,

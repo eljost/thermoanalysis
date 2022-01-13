@@ -41,9 +41,12 @@ class QCData:
         # print("Found linear molecule based on its inertia tensor")
         skip_freqs = 5 if self._linear else 6
 
+        self.wavenumbers = np.array(self.wavenumbers, dtype=float)
+        self.wavenumbers_org = self.wavenumbers.copy()
         self.wavenumbers *= self.scale_factor
         if len(self.wavenumbers) == self.coords3d.size:
             self.wavenumbers = self.wavenumbers[skip_freqs:]
+
         # Invert small imaginary frequencies
         # [1] suggests inverting imaginary frequencies above -20 cm⁻¹
         if self.invert_imags is not None:
