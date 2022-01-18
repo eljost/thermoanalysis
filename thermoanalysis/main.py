@@ -105,7 +105,7 @@ def parse_args(args):
     parser.add_argument(
         "--invert-imags",
         type=float,
-        default=None,
+        default=0.0,
         help="Invert imaginary frequencies bigger or equal to the threshold.",
     )
 
@@ -133,8 +133,6 @@ def run():
     qc = QCData(
         inp_fn,
         point_group=point_group,
-        scale_factor=scale,
-        invert_imags=invert_imags,
     )
     if args.temps:
         T_init, T_final, steps = args.temps
@@ -145,7 +143,13 @@ def run():
         ]
     thermos = [
         thermochemistry(
-            qc, T, pressure=pressure, kind=vib_kind, rotor_cutoff=rotor_cutoff
+            qc,
+            T,
+            pressure=pressure,
+            kind=vib_kind,
+            rotor_cutoff=rotor_cutoff,
+            scale_factor=scale,
+            invert_imags=invert_imags,
         )
         for T in temps
     ]

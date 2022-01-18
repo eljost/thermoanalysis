@@ -101,13 +101,21 @@ def test_orca_bigger(this_dir):
 
 @pytest.mark.parametrize(
     "invert_imags, dG_ref", (
-        (None, 0.25709996),
+        (0.0, 0.25709996),
         ( -20, 0.25522808)
     )
 )
 def test_orca_invert(invert_imags, dG_ref, this_dir): 
     log = this_dir / "logs/gas_000.017.orca.out"
-    qc = QCData(log, point_group="c1", invert_imags=invert_imags)
-    thermo = thermochemistry(qc, temperature=298.15, kind="qrrho")
+    qc = QCData(log, point_group="c1")
+    thermo = thermochemistry(qc, temperature=298.15, kind="qrrho", invert_imags=invert_imags)
 
     assert thermo.dG == approx(dG_ref, abs=2e-5)
+
+
+def test_orca_ts(this_dir):
+    log = this_dir / "logs/orca_hf_321g_hcn_iso_ts.out"
+    qc = QCData(log, point_group="c1")
+    thermo = thermochemistry(qc, temperature=298.15, kind="qrrho")
+
+    assert thermo.dG == approx(-0.01058726, abs=2e-5)

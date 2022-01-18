@@ -2,6 +2,10 @@
 # [2] https://doi.org/10.1002/chem.201200497
 # [3] https://doi.org/10.1021/acs.organomet.8b00456
 # [4] https://cccbdb.nist.gov/thermo.asp
+# [5] https://pubs.acs.org/doi/10.1021/acs.jctc.0c01306
+#     Single-Point Hessian Calculations
+#     Spicher, Grimme, 2021
+
 
 from collections import namedtuple
 
@@ -24,7 +28,7 @@ from thermoanalysis.config import ROTOR_CUT_DEFAULT
 ThermoResults = namedtuple(
     "ThermoResults",
     (
-        "T kBT M p imag_wavenumbers wavenumbers "
+        "T kBT M p org_wavenumbers wavenumbers "
         "atom_num linear point_group sym_num "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
@@ -188,11 +192,13 @@ def rotational_energy(temperature, is_linear, is_atom):
         Rotational energy in Hartree / particle.
     """
     if is_atom:
-        rot_energy = 0
+        factor = 0
     elif is_linear:
-        rot_energy = R * temperature
+        factor = 1
+    else:
+        factor = 1.5
 
-    U_rot = 3 / 2 * KBAU * temperature
+    U_rot = factor * KBAU * temperature
     return U_rot
 
 
@@ -412,22 +418,72 @@ def vibrational_entropy(temperature, frequencies, cutoff=100, alpha=4):
 
 
 def thermochemistry(
-    qc, temperature, pressure=1e5, kind="qrrho", rotor_cutoff=ROTOR_CUT_DEFAULT
+    qc,
+    temperature,
+    pressure=1e5,
+    kind="qrrho",
+    rotor_cutoff=ROTOR_CUT_DEFAULT,
+    scale_factor=1.0,
+    invert_imags=0.0,
+    cutoff=0.0,
 ):
     assert kind in "qrrho rrho".split()
+    assert invert_imags <= 0.0
+    assert cutoff >= 0.0
+
     T = temperature
     pressure = pressure
+
+    org_wavenumbers = qc.wavenumbers.copy()
+    wavenumbers = org_wavenumbers.copy()
+    full_set = len(org_wavenumbers) == 3 * qc.atom_num
+
+    """
+    First, imaginary frequencies with small absolute values can be inverted.
+    Afterwards, all frequencies are scaled by the given factor. Finally, positive
+    frequencies below a given cutoff are set to this cutoff, e.g. 50 cm⁻¹.
+    """
+
+    # Invert small imaginary frequencies.
+    # [5] suggests inverting imaginary frequencies above -20 cm⁻¹.
+    if invert_imags < 0.0:
+        to_invert = np.logical_and(invert_imags <= wavenumbers, wavenumbers <= 0.0)
+        if to_invert.sum() > 0:
+            print(f"Inverted {to_invert.sum()} imaginary frequencies.")
+        wavenumbers[to_invert] *= -1
+
+    wavenumbers *= scale_factor
+
+    if cutoff > 0.0:
+        to_cut = np.logical_and(wavenumbers < cutoff, wavenumbers > 0.0)
+        wavenumbers[to_cut] = cutoff
+
+    # Exclude remaining significant imaginary modes
+    wavenumbers = wavenumbers[wavenumbers > 0.0]
+
+    if full_set:
+        # 0 vibrations for atoms, 3N-5 for linear molecules, 3N-6 for non-linear
+        # polyatomic molecules.
+        exclude_wavenumbers = 0 if qc.is_atom else 6 + qc.is_linear
+
+        # Split wavenumbers into two groups. The ones that are actually used for calculating
+        # the thermochemical corrections and a group of excluded wavenumbers.
+        exclude_mask = np.zeros(len(wavenumbers), dtype=bool)
+        exclude_mask[:exclude_wavenumbers] = True
+        # excluded_wavenumbers = wavenumbers[exclude_mask]
+        wavenumbers = wavenumbers[~exclude_mask]
+    vib_frequencies = C * wavenumbers * 100
 
     U_el = qc.scf_energy
     U_trans = translation_energy(T)
     U_rot = rotational_energy(T, qc.is_linear, qc.is_atom)
-    U_vib = vibrational_energy(T, qc.vib_frequencies)
+    U_vib = vibrational_energy(T, vib_frequencies)
 
     # ZPE isn't included here as it is already included in the U_vib term
     U_therm = U_rot + U_vib + U_trans
     U_tot = U_el + U_therm
 
-    zpe = zero_point_energy(qc.vib_frequencies)
+    zpe = zero_point_energy(vib_frequencies)
     H = U_tot + KBAU * T
 
     S_el = electronic_entropy(qc.mult)
@@ -437,10 +493,10 @@ def thermochemistry(
     S_trans = translational_entropy(qc.M, T, pressure=pressure)
 
     if kind == "rrho":
-        S_hvibs = harmonic_vibrational_entropies(T, qc.vib_frequencies)
+        S_hvibs = harmonic_vibrational_entropies(T, vib_frequencies)
         S_vib = S_hvibs.sum()
     elif kind == "qrrho":
-        S_vib = vibrational_entropy(T, qc.vib_frequencies, cutoff=rotor_cutoff)
+        S_vib = vibrational_entropy(T, vib_frequencies, cutoff=rotor_cutoff)
     else:
         raise Exception("You should never get here!")
     S_tot = S_el + S_trans + S_rot + S_vib
@@ -454,8 +510,8 @@ def thermochemistry(
         p=pressure,
         point_group=qc.point_group,
         sym_num=qc.symmetry_number,
-        imag_wavenumbers=qc.imag_wavenumbers,
-        wavenumbers=qc.wavenumbers,
+        org_wavenumbers=org_wavenumbers,
+        wavenumbers=wavenumbers,
         atom_num=qc.atom_num,
         linear=qc.is_linear,
         U_el=U_el,
@@ -484,8 +540,12 @@ def thermochemistry(
 
 def print_thermo_results(thermo_results):
     au2CalMol = 1 / J2AU * NA * J2CAL
-    toCalMol = lambda E: f"{E*au2CalMol:.2f} cal/mol"
-    StoCalKMol = lambda S: f"{S*au2CalMol:.2f} cal/(K mol)"
+
+    def toCalMol(E):
+        return f"{E*au2CalMol:.2f} cal/mol"
+
+    def StoCalKMol(S):
+        return f"{S*au2CalMol:.2f} cal/(K mol)"
 
     tr = thermo_results
     T = tr.T
