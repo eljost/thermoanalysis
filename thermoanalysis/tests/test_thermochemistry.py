@@ -119,3 +119,17 @@ def test_orca_ts(this_dir):
     thermo = thermochemistry(qc, temperature=298.15, kind="qrrho")
 
     assert thermo.dG == approx(-0.01058726, abs=2e-5)
+
+
+@pytest.mark.parametrize(
+    "id_, dG_ref", (
+        (24, 0.62709533),
+        (63, 0.62781152),
+        (84, 0.62876245),
+    )
+)
+def test_irc_logs(this_dir, id_, dG_ref):
+    log = this_dir / f"logs/irc_000.0{id_}.orca.out"
+    qc = QCData(log, point_group="c1")
+    thermo = thermochemistry(qc, temperature=298.15, kind="qrrho")
+    assert thermo.dG == approx(dG_ref, abs=1e-5)

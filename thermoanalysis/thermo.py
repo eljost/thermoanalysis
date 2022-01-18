@@ -29,6 +29,7 @@ ThermoResults = namedtuple(
     "ThermoResults",
     (
         "T kBT M p org_wavenumbers wavenumbers "
+        "scale_factor invert_imag cutoff "
         "atom_num linear point_group sym_num "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
@@ -510,6 +511,9 @@ def thermochemistry(
         p=pressure,
         point_group=qc.point_group,
         sym_num=qc.symmetry_number,
+        scale_factor=scale_factor,
+        invert_imag=invert_imags,
+        cutoff=cutoff,
         org_wavenumbers=org_wavenumbers,
         wavenumbers=wavenumbers,
         atom_num=qc.atom_num,
