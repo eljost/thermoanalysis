@@ -31,6 +31,7 @@ ThermoResults = namedtuple(
         "T kBT M p org_wavenumbers wavenumbers "
         "scale_factor invert_imag cutoff "
         "atom_num linear point_group sym_num "
+        "Q_el Q_trans Q_rot Q_vib "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
         "TS_trans TS_rot TS_vib TS_el TS_tot G dG"
@@ -50,7 +51,7 @@ def electronic_part_func(multiplicity, electronic_energies, temperature):
     ----------
     multiplicity : int
         Multiplicity of the molecule.
-    electronic_energies : float
+    electronic_energies : iterable of floats
         Electronic energy in Hartree.
     temperature : float
         Absolute temperature in Kelvin.
@@ -377,9 +378,7 @@ def vibrational_part_func(temperature, frequencies):
     frequencies = np.array(frequencies, dtype=float)
     quot = -PLANCK * frequencies / (KB * temperature)
     quot_half = quot / 2
-    q_vib = np.product(
-        np.exp(quot_half) / (1 - np.exp(quot))
-    )
+    q_vib = np.product(np.exp(quot_half) / (1 - np.exp(quot)))
     return q_vib
 
 
@@ -587,6 +586,17 @@ def thermochemistry(
         wavenumbers = wavenumbers[~exclude_mask]
     vib_frequencies = C * wavenumbers * 100
 
+    Q_el = electronic_part_func(qc.mult, qc.scf_energy, temperature=T)
+    Q_trans = translational_part_func(qc.M, temperature=T, pressure=pressure)
+    Q_rot = rotational_part_func(
+        temperature=T,
+        rot_temperatures=qc.rot_temperatures,
+        symmetry_number=qc.symmetry_number,
+        is_atom=qc.is_atom,
+        is_linear=qc.is_linear,
+    )
+    Q_vib = vibrational_part_func(frequencies=vib_frequencies, temperature=T)
+
     U_el = qc.scf_energy
     U_trans = translational_energy(T)
     U_rot = rotational_energy(T, qc.is_linear, qc.is_atom)
@@ -630,6 +640,10 @@ def thermochemistry(
         wavenumbers=wavenumbers,
         atom_num=qc.atom_num,
         linear=qc.is_linear,
+        Q_el=Q_el,
+        Q_trans=Q_trans,
+        Q_rot=Q_rot,
+        Q_vib=Q_vib,
         U_el=U_el,
         U_trans=U_trans,
         U_rot=U_rot,
@@ -663,22 +677,42 @@ def print_thermo_results(thermo_results):
     def StoCalKMol(S):
         return f"{S*au2CalMol:.2f} cal/(K mol)"
 
+    def part_func(Q):
+        return f"{Q:.8e}"
+
+    def print_line(key, fmt_func, num):
+        print(f"{key: >12s} = {fmt_func(num)}")
+
+    def pQ(key, num):
+        print_line(f"Q_{key}", part_func, num)
+
+    def pU(key, num):
+        print_line(f"U_{key}", toCalMol, num)
+
+    def pS(key, num):
+        print_line(f"S_{key}", StoCalKMol, num)
+
     tr = thermo_results
     T = tr.T
     print(f"Thermochemistry @ {T:.2f} K and {tr.p:.6e} Pa")
 
-    print("ZPE", toCalMol(tr.ZPE))
-    print("U_trans", toCalMol(tr.U_trans))
-    print("U_rot", toCalMol(tr.U_rot))
-    print("U_vib", toCalMol(tr.U_vib))
-    print("U_therm", toCalMol(tr.U_therm))
+    pQ("el", tr.Q_el)
+    pQ("trans", tr.Q_trans)
+    pQ("rot", tr.Q_rot)
+    pQ("vib", tr.Q_vib)
+
+    print_line("ZPE", toCalMol, tr.ZPE)
+    pU("trans", tr.U_trans)
+    pU("rot", tr.U_rot)
+    pU("vib", tr.U_vib)
+    pU("therm", tr.U_therm)
     print("U_tot = U_el + U_trans + U_rot + U_vib")
-    print("U_tot", toCalMol(tr.U_tot))
+    pU("tot", tr.U_tot)
     print()
 
-    print("S_el", StoCalKMol(tr.S_el))
-    print("S_trans", StoCalKMol(tr.S_trans))
-    print("S_rot", StoCalKMol(tr.S_rot))
-    print("S_vib", StoCalKMol(tr.S_vib))
+    pS("el", tr.S_el)
+    pS("trans", tr.S_trans)
+    pS("rot", tr.S_rot)
+    pS("vib", tr.S_vib)
     print("S_tot = S_el + S_trans + S_rot + S_vib")
-    print("S_tot", StoCalKMol(tr.S_tot))
+    pS("tot", tr.S_tot)

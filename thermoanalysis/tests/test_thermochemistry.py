@@ -2,7 +2,7 @@ import pytest
 from pytest import approx
 
 from thermoanalysis.constants import CAL_MOL2AU, KCAL_MOL2AU
-from thermoanalysis.thermo import thermochemistry
+from thermoanalysis.thermo import thermochemistry, print_thermo_results
 from thermoanalysis.QCData import QCData
 
 
@@ -99,16 +99,13 @@ def test_orca_bigger(this_dir):
     assert thermo.dG == approx(dG_ref, abs=2e-5)
 
 
-@pytest.mark.parametrize(
-    "invert_imags, dG_ref", (
-        (0.0, 0.25709996),
-        ( -20, 0.25522808)
-    )
-)
-def test_orca_invert(invert_imags, dG_ref, this_dir): 
+@pytest.mark.parametrize("invert_imags, dG_ref", ((0.0, 0.25709996), (-20, 0.25522808)))
+def test_orca_invert(invert_imags, dG_ref, this_dir):
     log = this_dir / "logs/gas_000.017.orca.out"
     qc = QCData(log, point_group="c1")
-    thermo = thermochemistry(qc, temperature=298.15, kind="qrrho", invert_imags=invert_imags)
+    thermo = thermochemistry(
+        qc, temperature=298.15, kind="qrrho", invert_imags=invert_imags
+    )
 
     assert thermo.dG == approx(dG_ref, abs=2e-5)
 
@@ -122,14 +119,23 @@ def test_orca_ts(this_dir):
 
 
 @pytest.mark.parametrize(
-    "id_, dG_ref", (
+    "id_, dG_ref",
+    (
         (24, 0.62709533),
         (63, 0.62781152),
         (84, 0.62876245),
-    )
+    ),
 )
 def test_irc_logs(this_dir, id_, dG_ref):
     log = this_dir / f"logs/irc_000.0{id_}.orca.out"
     qc = QCData(log, point_group="c1")
     thermo = thermochemistry(qc, temperature=298.15, kind="qrrho")
     assert thermo.dG == approx(dG_ref, abs=1e-5)
+
+
+def test_print_thermo_results(this_dir):
+    log = this_dir / "logs/06_benzaldehyde_b973c_orca_gas.out"
+    qc = QCData(log, point_group="c1")
+    T = 298.15
+    thermo = thermochemistry(qc, T, kind="qrrho")
+    print_thermo_results(thermo)
