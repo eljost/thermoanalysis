@@ -548,7 +548,6 @@ def thermochemistry(
 
     org_wavenumbers = qc.wavenumbers.copy()
     wavenumbers = org_wavenumbers.copy()
-    full_set = len(org_wavenumbers) == 3 * qc.atom_num
 
     """
     First, imaginary frequencies with small absolute values can be inverted.
@@ -573,7 +572,7 @@ def thermochemistry(
     # Exclude remaining significant imaginary modes
     wavenumbers = wavenumbers[wavenumbers > 0.0]
 
-    if full_set:
+    if len(wavenumbers) == 3 * qc.atom_num:
         # 0 vibrations for atoms, 3N-5 for linear molecules, 3N-6 for non-linear
         # polyatomic molecules.
         exclude_wavenumbers = 0 if qc.is_atom else 6 + qc.is_linear

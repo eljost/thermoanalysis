@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 
 import cclib
@@ -5,6 +6,11 @@ import h5py
 import numpy as np
 
 from thermoanalysis.constants import C, ANG2M, AMU2KG, PLANCK, KB, AU2EV, ANG2AU
+from thermoanalysis.parser import parse
+
+
+class CCLibParserError(Exception):
+    pass
 
 
 class QCData:
@@ -17,54 +23,75 @@ class QCData:
         self.point_group = point_group.lower()
         self.symmetry_number = self.get_symmetry_number()
 
-        if isinstance(inp, dict):
-            self.set_pysis_dict_data(inp)
-        elif str(inp).endswith(".h5"):
-            self.fn = str(inp)
-            self.set_pysis_hess_data(self.fn)
-        else:
-            self.fn = str(inp)
-            self.set_data(self.fn)
+        if Path(inp).exists():
+            inp = str(inp)
+            self.fn = inp
+            # Try to read as pysisyphus HDF5 Hessian
+            if inp.endswith(".h5"):
+                data = self.from_pysis_hdf5_hessian(inp)
 
-        must_have = "coords3d wavenumbers scf_energy masses mult".split()
-        missing = [not hasattr(self, name) for name in must_have]
-        if any(missing):
-            print(missing, "is missing!")
+            # Try cclib
+            try:
+                data = self.from_cclib(inp)
+            # Try own parser
+            except CCLibParserError:
+                with open(inp) as handle:
+                    text = handle.read()
+                data = self.from_parser(text)
+        # Treat inp as dict
+        else:
+            data = inp
+
+        # Actually set data
+        self.set_data(data)
 
         self.standard_orientation()
         I = self.inertia_tensor()
         w, v = np.linalg.eigh(I)
         self._linear = (abs(w[0]) < 1e-8) and (abs(w[1] - w[2]) < 1e-8)
 
-    def set_data(self, inp_fn):
-        parser = cclib.io.ccopen(inp_fn)
-        data = parser.parse()
-        self.data = data
-        coords3d = self.data.atomcoords  # in Angstrom
-        # assert coords3d.shape[0] == 1
-        self.coords3d = coords3d[-1]
-        self.wavenumbers = self.data.vibfreqs
-        self.scf_energy = self.data.scfenergies[-1] / AU2EV
-        assert self.data.scfenergies.shape[0] == self.data.atomcoords.shape[0]
-        self.masses = self.data.atommasses
-        self._mult = self.data.mult
-
-    def set_pysis_hess_data(self, fn):
+    def from_pysis_hdf5_hessian(self, fn):
         with h5py.File(fn, "r") as handle:
-            self.masses = handle["masses"][:]
-            self.wavenumbers = handle["vibfreqs"][:]
-            # From Bohr to Angstrom
-            self.coords3d = handle["coords3d"][:] / ANG2AU
-            self.scf_energy = handle.attrs["energy"]
-            self._mult = handle.attrs["mult"]
+            data = {
+                "masses": handle["masses"][:],
+                "wavenumbers": handle["vibfreqs"][:],
+                "coords": handle["coords3d"][:] / ANG2AU,  # in Angstrom
+                "scf_energy": handle.attrs["energy"],
+                "mult": handle.attrs["mult"],
+            }
+        return data
 
-    def set_pysis_dict_data(self, inp_dict):
-        self.masses = inp_dict["masses"]
-        self.wavenumbers = inp_dict["vibfreqs"]
-        # From Bohr to Angstrom
-        self.coords3d = inp_dict["coords3d"][:] / ANG2AU
-        self.scf_energy = inp_dict["energy"]
-        self._mult = inp_dict["mult"]
+    def from_cclib(self, fn):
+        parser = cclib.io.ccopen(fn)
+        try:
+            data = parser.parse()
+        except:
+            raise CCLibParserError
+
+        results = {
+            "coords3d": data.atomcoords[-1],  # in Angstrom
+            "wavenumbers": data.vibfreqs,
+            "scf_energy": data.scfenergies[-1] / AU2EV,
+            "masses": data.atommasses,
+            "mult": data.mult,
+        }
+        return results
+
+    def from_parser(self, fn):
+        return parse(fn)
+
+    def set_data(self, data):
+        expect = set("coords3d wavenumbers scf_energy masses mult".split())
+        present = set(data.keys())
+        missing = expect - present
+        assert len(missing) == 0, f"Keys '{missing}' are missing!"
+
+        self.masses = np.array(data["masses"], dtype=float)
+        self.wavenumbers = np.array(data["wavenumbers"], dtype=float)
+        self.coords3d = np.array(data["coords3d"], dtype=float).reshape(-1, 3)
+        assert self.coords3d.size == 3 * len(self.masses)
+        self.scf_energy = float(data["scf_energy"])
+        self.mult = int(data["mult"])
 
     @property
     def atom_num(self):
@@ -91,6 +118,10 @@ class QCData:
             Multiplicity.
         """
         return self._mult
+
+    @mult.setter
+    def mult(self, mult):
+        self._mult = mult
 
     @property
     def vib_frequencies(self):

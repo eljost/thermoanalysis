@@ -155,7 +155,7 @@ def run():
     ]
 
     print_thermos(thermos)
-    dump_thermos(inp_fn, thermos)
+    # dump_thermos(inp_fn, thermos)
 
 
 if __name__ == "__main__":
