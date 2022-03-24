@@ -14,7 +14,7 @@ def parse_orca(text):
     coord_line = pp.Group(
         int_.set_results_name("no")
         + pp.Word(pp.alphas).set_results_name("lb")
-        + real.set_results_name("za")
+        + real.set_results_name("za") + pp.Optional(pp.Literal("*"))
         + int_.set_results_name("frag")
         + real.set_results_name("mass")
         + pp.Group(real + real + real).set_results_name("xyz")
@@ -29,7 +29,7 @@ def parse_orca(text):
     parser = (
         # Coordinates and masses
         pp.SkipTo(
-            pp.Literal("MASS") + pp.Literal("X") + pp.Literal("Y") + pp.Literal("Z"),
+            pp.Literal("NO LB      ZA    FRAG     MASS         X           Y           Z"),
             include=True,
         )
         + pp.OneOrMore(coord_line).set_results_name("coords")
