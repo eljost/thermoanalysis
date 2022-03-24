@@ -10,7 +10,7 @@ import pandas as pd
 from tabulate import tabulate
 
 from thermoanalysis.config import p_DEFAULT, ROTOR_CUT_DEFAULT, T_DEFAULT
-from thermoanalysis.thermo import thermochemistry
+from thermoanalysis.thermo import thermochemistry, print_thermo_results
 from thermoanalysis.QCData import QCData
 
 
@@ -108,6 +108,11 @@ def parse_args(args):
         default=0.0,
         help="Invert imaginary frequencies bigger or equal to the threshold.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print more detailed output."
+    )
 
     return parser.parse_args(args)
 
@@ -155,6 +160,12 @@ def run():
     ]
 
     print_thermos(thermos)
+
+    if args.verbose:
+        print()
+        for tr in thermos:
+            print_thermo_results(tr)
+
     # dump_thermos(inp_fn, thermos)
 
 

@@ -33,7 +33,7 @@ ThermoResults = namedtuple(
     "ThermoResults",
     (
         "T kBT M p org_wavenumbers wavenumbers "
-        "scale_factor invert_imag cutoff "
+        "scale_factor invert_imag cutoff kind "
         "atom_num linear point_group sym_num "
         "Q_el Q_trans Q_rot Q_vib Q_vib_V0 "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
@@ -751,6 +751,7 @@ def thermochemistry(
         scale_factor=scale_factor,
         invert_imag=invert_imags,
         cutoff=cutoff,
+        kind=kind,
         org_wavenumbers=org_wavenumbers,
         wavenumbers=wavenumbers,
         atom_num=qc.atom_num,
@@ -810,14 +811,22 @@ def print_thermo_results(thermo_results):
 
     tr = thermo_results
     T = tr.T
-    print(f"Thermochemistry @ {T:.2f} K and {tr.p:.6e} Pa")
+    print(f"Thermochemistry @ {T:.2f} K and {tr.p:.6e} Pa, '{tr.kind.upper()}' analysis.\n")
 
+    print("Partition functions:")
     pQ("el", tr.Q_el)
     pQ("trans", tr.Q_trans)
     pQ("rot", tr.Q_rot)
-    pQ("vib", tr.Q_vib)
+    pQ("vib BOT", tr.Q_vib)
+    pQ("vib V0", tr.Q_vib_V0)
+    print()
 
+    print("Zero-point energy")
     print_line("ZPE", toCalMol, tr.ZPE)
+    print()
+
+    print("Internal energy")
+    pU("el", tr.U_el)
     pU("trans", tr.U_trans)
     pU("rot", tr.U_rot)
     pU("vib", tr.U_vib)
@@ -826,6 +835,7 @@ def print_thermo_results(thermo_results):
     pU("tot", tr.U_tot)
     print()
 
+    print("Entropy contributions:")
     pS("el", tr.S_el)
     pS("trans", tr.S_trans)
     pS("rot", tr.S_rot)
