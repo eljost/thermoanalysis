@@ -23,7 +23,12 @@ class QCData:
         self.point_group = point_group.lower()
         self.symmetry_number = self.get_symmetry_number()
 
-        if Path(inp).exists():
+        try:
+            inp_path = Path(inp)
+        except TypeError:
+            inp_path = None
+
+        if inp_path and inp_path.exists():
             inp = str(inp)
             self.fn = inp
             # Try to read as pysisyphus HDF5 Hessian
@@ -237,6 +242,13 @@ class QCData:
         I_yz = -np.sum(self.masses * y * z)
         I = np.array(((I_xx, I_xy, I_xz), (I_xy, I_yy, I_yz), (I_xz, I_yz, I_zz)))
         return I
+
+    @property
+    def average_moment_of_inertia(self):
+        """Average moment of inertia in Angstrom² * amu."""
+        w, _ = np.linalg.eigh(self.inertia_tensor())
+        I_avg = np.mean(w)
+        return I_avg
 
     @property
     def center_of_mass(self):

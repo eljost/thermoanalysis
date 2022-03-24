@@ -5,6 +5,10 @@
 # [5] https://pubs.acs.org/doi/10.1021/acs.jctc.0c01306
 #     Single-Point Hessian Calculations
 #     Spicher, Grimme, 2021
+# [6] https://doi.org/10.1063/5.0061187
+#     Calculation of improved enthalpy and entropy of vaporization by a modified
+#     partition function in quantum cluster equilibrium theory
+#     Ingenmey, Grimme, 2021
 
 
 from collections import namedtuple
@@ -31,12 +35,39 @@ ThermoResults = namedtuple(
         "T kBT M p org_wavenumbers wavenumbers "
         "scale_factor invert_imag cutoff "
         "atom_num linear point_group sym_num "
-        "Q_el Q_trans Q_rot Q_vib "
+        "Q_el Q_trans Q_rot Q_vib Q_vib_V0 "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
         "TS_trans TS_rot TS_vib TS_el TS_tot G dG"
     ),
 )
+
+
+def chai_head_gordon_weights(frequencies, cutoff, alpha=4):
+    """Chai-Head-Gordon damping function.
+
+    Used for interpolating between harmonic oscillator and hindered rotor
+    approximations. See eq. (8) in [2], or Eq. (10) in [7].
+
+    Parameters
+    ----------
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+    cutoff : float
+        Wavenumber cutoff in cm⁻¹. Vibrations below this threshold will mostly
+        be treated as hindered rotors.
+    alpha : float
+        Exponent alpha in the damping function.
+
+    Returns
+    -------
+    weights : ArrayLike
+        Weights of the damping function.
+    """
+
+    wavenumbers = (frequencies / C) / 100  # in cm⁻¹
+    weights = 1 / (1 + (cutoff / wavenumbers) ** alpha)
+    return weights
 
 
 ##############
@@ -114,7 +145,7 @@ def translational_part_func(molecular_mass, temperature, pressure):
     volume = KB * temperature / pressure
     molecular_mass_kg = molecular_mass * AMU2KG
     q_trans = (
-        (2 * np.pi * molecular_mass_kg * KB * temperature / PLANCK**2) ** 1.5
+        (2 * np.pi * molecular_mass_kg * KB * temperature / PLANCK ** 2) ** 1.5
     ) * volume
     return q_trans
 
@@ -160,7 +191,7 @@ def sackur_tetrode(molecular_mass, temperature, pressure=p_DEFAULT):
     # Just using 1e5 instead of a "true" atmosphere of 1.01325e5 seems to
     # agree better with the results Gaussian and ORCA produce.
     q_trans = (
-        (2 * np.pi * molecular_mass * AMU2KG * KB * temperature / PLANCK**2)
+        (2 * np.pi * molecular_mass * AMU2KG * KB * temperature / PLANCK ** 2)
         ** (3 / 2)
         * KB
         * temperature
@@ -360,6 +391,91 @@ def zero_point_energy(frequencies):
     return ZPE
 
 
+def vibrational_part_funcs(temperature, frequencies):
+    """Vibrational partition functions for harmonic oscillators.
+
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+
+    Returns
+    -------
+    q_vibs : ArrayLike
+        Vibrational partition functions at the bottom of the well.
+    q_vibs_V0  : ArrayLike
+        Vibrational partition functions with first vibrational energy level
+        as reference.
+    """
+    frequencies = np.array(frequencies, dtype=float)
+    quot = -PLANCK * frequencies / (KB * temperature)
+    denom = 1 / (1 - np.exp(quot))
+    quot_half = quot / 2
+    # Bottom of the well as reference
+    q_vibs = np.exp(quot_half) * denom
+    # First vibrational energy level as reference
+    q_vibs_V0 = denom
+    return q_vibs, q_vibs_V0
+
+
+def qrrho_vibrational_part_func(temperature, frequencies, I_mean, cutoff, alpha=4):
+    """QRRHO vibrational partition function.
+
+    As given in Eq. (7) in [6]. Mix between hindererd rotor
+    and harmonic oscillator partition function.
+
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+    I_mean : float
+        Average moment of inertia of the molecule in Angstrom² * amu.
+    cutoff : float
+        Wavenumber cutoff in cm⁻¹. Vibrations below this threshold will mostly
+        be treated as hindered rotors.
+    alpha : float
+        Exponent alpha in the damping function (Eq. (8) in [2], or Eq. (10) in [7])
+
+    Returns
+    -------
+    q_vib : float
+        QRRHO Vibrational partition function.
+    """
+
+    wavenumbers = (frequencies / C) / 100  # in cm⁻¹
+    q_vibs, q_vibs_V0 = vibrational_part_funcs(temperature, frequencies)
+
+    if cutoff > 0.0 and I_mean:
+        # Normal mode moments of inertia
+        wavenumbers_m = 100 * wavenumbers  # in m⁻¹
+        mu = PLANCK / (
+            2 * np.pi * 4 * np.pi * wavenumbers_m
+        )  # Eq. (9) in [6], in kg m³ s⁻¹
+        # Convert average moment of inertia from Å² AMU to SI units (m² kg)
+        I_mean_SI = I_mean * 1e-20 * AMU2KG
+        mu_ = mu * I_mean_SI / (mu + I_mean_SI)
+        q_hr = np.sqrt(
+            2 * mu_ / (np.pi * (PLANCK / (2 * np.pi)) ** 2 / (temperature * KB))
+        )
+    # Without cutoff this partition function reduces to the partition function
+    # of the harmonic oscillator.
+    else:
+        q_hr = np.ones_like(q_vibs)
+
+    weights = chai_head_gordon_weights(frequencies, cutoff, alpha)
+
+    def prod(q_vibs):
+        return np.product((q_vibs ** weights) * (q_hr ** (1 - weights)))
+
+    q_qrrho = prod(q_vibs)
+    q_qrrho_V0 = prod(q_vibs_V0)
+    return q_qrrho, q_qrrho_V0
+
+
 def vibrational_part_func(temperature, frequencies):
     """Vibrational partition function.
 
@@ -375,11 +491,9 @@ def vibrational_part_func(temperature, frequencies):
     q_vib : float
         Vibrational partition function.
     """
-    frequencies = np.array(frequencies, dtype=float)
-    quot = -PLANCK * frequencies / (KB * temperature)
-    quot_half = quot / 2
-    q_vib = np.product(np.exp(quot_half) / (1 - np.exp(quot)))
-    return q_vib
+    return qrrho_vibrational_part_func(
+        temperature, frequencies, I_mean=None, cutoff=0.0
+    )
 
 
 def vibrational_energy(temperature, frequencies):
@@ -462,19 +576,19 @@ def free_rotor_entropies(temperature, frequencies, B_av=1e-44):
     S_free_rots : array-like
         Array containing free-rotor entropies in Hartree / (particle * K).
     """
-    inertia_moments = PLANCK / (8 * np.pi**2 * frequencies)
+    inertia_moments = PLANCK / (8 * np.pi ** 2 * frequencies)
     eff_inertia_moments = (inertia_moments * B_av) / (inertia_moments + B_av)
     S_free_rots = KBAU * (
         1 / 2
         + np.log(
-            (8 * np.pi**3 * eff_inertia_moments * KB * temperature / PLANCK**2)
+            (8 * np.pi ** 3 * eff_inertia_moments * KB * temperature / PLANCK ** 2)
             ** (1 / 2)
         )
     )
     return S_free_rots
 
 
-def vibrational_entropies(temperature, frequencies, cutoff=100, alpha=4):
+def vibrational_entropies(temperature, frequencies, cutoff, alpha=4):
     """Weighted vibrational entropy.
 
     As given in Eq. (7) of [2].
@@ -496,15 +610,14 @@ def vibrational_entropies(temperature, frequencies, cutoff=100, alpha=4):
     S_vibs : array-like
         Array containing vibrational entropies in Hartree / (particle * K).
     """
-    wavenumbers = (frequencies / C) / 100
-    weights = 1 / (1 + (cutoff / wavenumbers) ** alpha)
+    weights = chai_head_gordon_weights(frequencies, cutoff, alpha)
     S_harmonic = harmonic_vibrational_entropies(temperature, frequencies)
     S_quasi_harmonic = free_rotor_entropies(temperature, frequencies)
     S_vibs = weights * S_harmonic + (1 - weights) * S_quasi_harmonic
     return S_vibs
 
 
-def vibrational_entropy(temperature, frequencies, cutoff=100, alpha=4):
+def vibrational_entropy(temperature, frequencies, cutoff, alpha=4):
     """Vibrational entropy.
 
     Wrapper function. As given in Eq. (7) of [2].
@@ -548,15 +661,24 @@ def thermochemistry(
 
     org_wavenumbers = qc.wavenumbers.copy()
     wavenumbers = org_wavenumbers.copy()
+    # If given a full set of 3N normal mode wavenumbers, exclude N wavenumbers
+    # with the smallest absolute wavenumbers.
+    if wavenumbers.size == 3 * qc.atom_num:
+        abs_wavenumbers = np.abs(wavenumbers)
+        inds = np.argsort(abs_wavenumbers)
+        drop_first = 6 - int(qc.is_linear)
+        # Drop first N wavenumbers with smallest absolute values
+        keep_mask = np.ones_like(wavenumbers, dtype=bool)
+        keep_mask[inds[:drop_first]] = False
+        wavenumbers = wavenumbers[keep_mask]
 
     """
-    First, imaginary frequencies with small absolute values can be inverted.
+    Remaining imaginary frequencies with small absolute values can be inverted.
     Afterwards, all frequencies are scaled by the given factor. Finally, positive
     frequencies below a given cutoff are set to this cutoff, e.g. 50 cm⁻¹.
-    """
 
-    # Invert small imaginary frequencies.
-    # [5] suggests inverting imaginary frequencies above -20 cm⁻¹.
+    [5] suggests inverting imaginary frequencies above -20 cm⁻¹.
+    """
     if invert_imags < 0.0:
         to_invert = np.logical_and(invert_imags <= wavenumbers, wavenumbers <= 0.0)
         if to_invert.sum() > 0:
@@ -569,20 +691,7 @@ def thermochemistry(
         to_cut = np.logical_and(wavenumbers < cutoff, wavenumbers > 0.0)
         wavenumbers[to_cut] = cutoff
 
-    # Exclude remaining significant imaginary modes
     wavenumbers = wavenumbers[wavenumbers > 0.0]
-
-    if len(wavenumbers) == 3 * qc.atom_num:
-        # 0 vibrations for atoms, 3N-5 for linear molecules, 3N-6 for non-linear
-        # polyatomic molecules.
-        exclude_wavenumbers = 0 if qc.is_atom else 6 + qc.is_linear
-
-        # Split wavenumbers into two groups. The ones that are actually used for calculating
-        # the thermochemical corrections and a group of excluded wavenumbers.
-        exclude_mask = np.zeros(len(wavenumbers), dtype=bool)
-        exclude_mask[:exclude_wavenumbers] = True
-        # excluded_wavenumbers = wavenumbers[exclude_mask]
-        wavenumbers = wavenumbers[~exclude_mask]
     vib_frequencies = C * wavenumbers * 100
 
     Q_el = electronic_part_func(qc.mult, qc.scf_energy, temperature=T)
@@ -594,7 +703,6 @@ def thermochemistry(
         is_atom=qc.is_atom,
         is_linear=qc.is_linear,
     )
-    Q_vib = vibrational_part_func(frequencies=vib_frequencies, temperature=T)
 
     U_el = qc.scf_energy
     U_trans = translational_energy(T)
@@ -617,8 +725,16 @@ def thermochemistry(
     if kind == "rrho":
         S_hvibs = harmonic_vibrational_entropies(T, vib_frequencies)
         S_vib = S_hvibs.sum()
+        # Harmonic oscillator partition function
+        Q_vib, Q_vib_V0 = vibrational_part_func(
+            frequencies=vib_frequencies, temperature=T
+        )
     elif kind == "qrrho":
         S_vib = vibrational_entropy(T, vib_frequencies, cutoff=rotor_cutoff)
+        I_mean = qc.average_moment_of_inertia
+        Q_vib, Q_vib_V0 = qrrho_vibrational_part_func(
+            T, vib_frequencies, I_mean, cutoff=rotor_cutoff
+        )
     else:
         raise Exception("You should never get here!")
     S_tot = S_el + S_trans + S_rot + S_vib
@@ -643,6 +759,7 @@ def thermochemistry(
         Q_trans=Q_trans,
         Q_rot=Q_rot,
         Q_vib=Q_vib,
+        Q_vib_V0=Q_vib_V0,
         U_el=U_el,
         U_trans=U_trans,
         U_rot=U_rot,
