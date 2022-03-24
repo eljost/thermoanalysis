@@ -38,4 +38,3 @@ jobs:
         pytest --pyargs thermoanalysis
         --show-capture=no
         --durations=0
-        tests

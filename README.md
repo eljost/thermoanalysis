@@ -1,10 +1,14 @@
 # thermoanalysis
 
-External thermochemistry analysis implemented in pure python for all
-frequency calculations that can be parsed by `cclib` and provide the
-required attributes (`atomcoords`, `vibfreqs`, `scfenergies`, `atommasses`, `mult`).
+External thermochemistry analysis implemented in pure python.
 
-The program is inspired by the nice [GoodVibes](https://github.com/bobbypaton/GoodVibes) script from the Patton group.
+`thermoanalysis` parses log files produced by quantum chemistry codes
+like ORCA and Gaussian using `cclib`. All programs that provide the
+required attributes (`atomcoords`, `vibfreqs`, `scfenergies`, `atommasses`, `mult`)
+via `cclib` are supported.
+
+The program is inspired by the nice [GoodVibes](https://github.com/bobbypaton/GoodVibes)
+script from the Patton group.
 
 ## Installation
 ```
