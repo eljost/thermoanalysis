@@ -3,6 +3,7 @@ from pytest import approx
 
 from thermoanalysis.constants import CAL_MOL2AU, KCAL_MOL2AU
 from thermoanalysis.thermo import thermochemistry, print_thermo_results
+from thermoanalysis.main import run
 from thermoanalysis.QCData import QCData
 
 
@@ -139,3 +140,17 @@ def test_print_thermo_results(this_dir):
     T = 298.15
     thermo = thermochemistry(qc, T, kind="qrrho")
     print_thermo_results(thermo)
+
+
+@pytest.mark.parametrize(
+    "fn",
+    (
+        "03_anthracene_freq.log",
+        "03_anthracene_freq.hess",
+    ),
+)
+def test_anthracene(fn, this_dir):
+    inp = this_dir / "logs" / fn
+    qc = QCData(inp)
+    thermo = thermochemistry(qc, temperature=298.15, kind="qrrho")
+    assert thermo.dG == pytest.approx(0.18886409, abs=1.31e-3)
