@@ -6,23 +6,14 @@ required attributes (`atomcoords`, `vibfreqs`, `scfenergies`, `atommasses`, `mul
 
 The program is inspired by the nice [GoodVibes](https://github.com/bobbypaton/GoodVibes) script from the Patton group.
 
-## Requirements
-```
-python3.6+
-cclib
-h5py
-numpy
-pytest
-tabulate
-```
-
 ## Installation
 ```
-python setup.py install
+git clone git@github.com:eljost/thermoanalysis.git
+cd thermoanalysis
+python -m pip install .
 ```
-Until `cclib 1.6.2` is released a patch ([Correct parsing of vibrational frequencies with ORCA 4.1.x](https://github.com/cclib/cclib/pull/706/commits/18a3945ed6eaa82f418e2150eb5307be9697c238)) has to be applied to `cclib` correctly parse frequency calculations done with recent ORCA versions (4.1+).
 
-## Running tests
+## Verifying the installation
 ```
 # Can be executed from any directory after installation of thermoanalysis
 pytest --pyargs thermoanalysis
@@ -30,7 +21,7 @@ pytest --pyargs thermoanalysis
 
 ## Usage
 ```
-thermo [log] --temp [298.15] --pg [c1]
+thermo [log] --temp [298.15] --pg [c1] [--verbose]
 ```
 
 ## Sample output
