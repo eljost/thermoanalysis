@@ -38,6 +38,7 @@ ThermoResults = namedtuple(
         "Q_el Q_trans Q_rot Q_vib Q_vib_V0 "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
+        "c_el c_trans c_rot c_vib c_tot "
         "TS_trans TS_rot TS_vib TS_el TS_tot G dG"
     ),
 )
@@ -145,7 +146,7 @@ def translational_part_func(molecular_mass, temperature, pressure):
     volume = KB * temperature / pressure
     molecular_mass_kg = molecular_mass * AMU2KG
     q_trans = (
-        (2 * np.pi * molecular_mass_kg * KB * temperature / PLANCK ** 2) ** 1.5
+        (2 * np.pi * molecular_mass_kg * KB * temperature / PLANCK**2) ** 1.5
     ) * volume
     return q_trans
 
@@ -191,7 +192,7 @@ def sackur_tetrode(molecular_mass, temperature, pressure=p_DEFAULT):
     # Just using 1e5 instead of a "true" atmosphere of 1.01325e5 seems to
     # agree better with the results Gaussian and ORCA produce.
     q_trans = (
-        (2 * np.pi * molecular_mass * AMU2KG * KB * temperature / PLANCK ** 2)
+        (2 * np.pi * molecular_mass * AMU2KG * KB * temperature / PLANCK**2)
         ** (3 / 2)
         * KB
         * temperature
@@ -248,6 +249,18 @@ def translational_entropy(molecular_mass, temperature, pressure, kind="sackur"):
         "sackur_simple": sackur_tetrode_simplified,
     }
     return funcs[kind](molecular_mass, temperature)
+
+
+def translational_heat_capacity():
+    """Constant volume heat capacity.
+
+    Returns
+    -------
+    c_trans
+        Constant volume heat capacity in J / (K mol).
+    """
+    c_trans = 1.5 * R
+    return c_trans
 
 
 ####################
@@ -366,6 +379,30 @@ def rotational_entropy(
     return S_rot
 
 
+def rotational_heat_capacity(is_atom, is_linear=False):
+    """Rotational heat capacity.
+
+    Parameters
+    ----------
+    is_atom : bool
+        Wether the molcule is an atom.
+    is_linear : bool, optional
+        Wether the molecule is linear.
+
+    Returns
+    -------
+    c_rot
+        Rotational contributions to the heat capacity.
+    """
+    if is_atom:
+        c_rot = 0
+    elif is_linear:
+        c_rot = R
+    else:
+        c_rot = 1.5 * R
+    return c_rot
+
+
 #####################
 # VIBRATIONAL TERMS #
 #####################
@@ -469,7 +506,7 @@ def qrrho_vibrational_part_func(temperature, frequencies, I_mean, cutoff, alpha=
     weights = chai_head_gordon_weights(frequencies, cutoff, alpha)
 
     def prod(q_vibs):
-        return np.product((q_vibs ** weights) * (q_hr ** (1 - weights)))
+        return np.product((q_vibs**weights) * (q_hr ** (1 - weights)))
 
     q_qrrho = prod(q_vibs)
     q_qrrho_V0 = prod(q_vibs_V0)
@@ -576,12 +613,12 @@ def free_rotor_entropies(temperature, frequencies, B_av=1e-44):
     S_free_rots : array-like
         Array containing free-rotor entropies in Hartree / (particle * K).
     """
-    inertia_moments = PLANCK / (8 * np.pi ** 2 * frequencies)
+    inertia_moments = PLANCK / (8 * np.pi**2 * frequencies)
     eff_inertia_moments = (inertia_moments * B_av) / (inertia_moments + B_av)
     S_free_rots = KBAU * (
         1 / 2
         + np.log(
-            (8 * np.pi ** 3 * eff_inertia_moments * KB * temperature / PLANCK ** 2)
+            (8 * np.pi**3 * eff_inertia_moments * KB * temperature / PLANCK**2)
             ** (1 / 2)
         )
     )
@@ -642,6 +679,27 @@ def vibrational_entropy(temperature, frequencies, cutoff, alpha=4):
     return vibrational_entropies(temperature, frequencies, cutoff, alpha).sum()
 
 
+def vibrational_heat_capacity(temperature, frequencies):
+    """
+    Parameters
+    ----------
+    temperature : float
+        Absolute temperature in Kelvin.
+    frequencies : array-like
+        Vibrational frequencies in 1/s.
+
+    Returns
+    -------
+    c_vib
+        Vibrational contributions to the heat capacity.
+    """
+    frequencies = np.array(frequencies, dtype=float)
+    quot = PLANCK * frequencies / (KB * temperature)
+
+    c_vib = R * (np.exp(quot) * (quot / (np.exp(quot) - 1)) ** 2).sum()
+    return c_vib
+
+
 def thermochemistry(
     qc,
     temperature,
@@ -694,6 +752,7 @@ def thermochemistry(
     wavenumbers = wavenumbers[wavenumbers > 0.0]
     vib_frequencies = C * wavenumbers * 100
 
+    # Partition functions
     Q_el = electronic_part_func(qc.mult, qc.scf_energy, temperature=T)
     Q_trans = translational_part_func(qc.M, temperature=T, pressure=pressure)
     Q_rot = rotational_part_func(
@@ -704,6 +763,7 @@ def thermochemistry(
         is_linear=qc.is_linear,
     )
 
+    # Internal energies
     U_el = qc.scf_energy
     U_trans = translational_energy(T)
     U_rot = rotational_energy(T, qc.is_linear, qc.is_atom)
@@ -716,11 +776,19 @@ def thermochemistry(
     zpe = zero_point_energy(vib_frequencies)
     H = U_tot + KBAU * T
 
+    # Entropies
     S_el = electronic_entropy(qc.mult)
     S_rot = rotational_entropy(
         T, qc.rot_temperatures, qc.symmetry_number, qc.is_linear, qc.is_atom
     )
     S_trans = translational_entropy(qc.M, T, pressure=pressure)
+
+    # Heat capacities
+    c_el = 0.0  # always zero
+    c_trans = translational_heat_capacity()
+    c_rot = rotational_heat_capacity(is_atom=qc.is_atom, is_linear=qc.is_linear)
+    c_vib = vibrational_heat_capacity(T, vib_frequencies)
+    c_tot = c_el + c_trans + c_rot + c_vib
 
     if kind == "rrho":
         S_hvibs = harmonic_vibrational_entropies(T, vib_frequencies)
@@ -737,6 +805,7 @@ def thermochemistry(
         )
     else:
         raise Exception("You should never get here!")
+
     S_tot = S_el + S_trans + S_rot + S_vib
     G = H - T * S_tot
     dG = G - U_el
@@ -774,6 +843,11 @@ def thermochemistry(
         S_vib=S_vib,
         S_el=S_el,
         S_tot=S_tot,
+        c_el=c_el,
+        c_trans=c_trans,
+        c_rot=c_rot,
+        c_vib=c_vib,
+        c_tot=c_tot,
         TS_trans=T * S_trans,
         TS_rot=T * S_rot,
         TS_vib=T * S_vib,
@@ -794,6 +868,9 @@ def print_thermo_results(thermo_results):
     def StoCalKMol(S):
         return f"{S*au2CalMol:.2f} cal/(K mol)"
 
+    def CtoCalKMol(c):
+        return f"{c*J2CAL:.4f} cal/(K mol)"
+
     def part_func(Q):
         return f"{Q:.8e}"
 
@@ -809,9 +886,14 @@ def print_thermo_results(thermo_results):
     def pS(key, num):
         print_line(f"S_{key}", StoCalKMol, num)
 
+    def pC(key, num):
+        print_line(f"C_{key}", CtoCalKMol, num)
+
     tr = thermo_results
     T = tr.T
-    print(f"Thermochemistry @ {T:.2f} K and {tr.p:.6e} Pa, '{tr.kind.upper()}' analysis.\n")
+    print(
+        f"Thermochemistry @ {T:.2f} K and {tr.p:.6e} Pa, '{tr.kind.upper()}' analysis.\n"
+    )
 
     print("Partition functions:")
     pQ("el", tr.Q_el)
@@ -842,3 +924,10 @@ def print_thermo_results(thermo_results):
     pS("vib", tr.S_vib)
     print("S_tot = S_el + S_trans + S_rot + S_vib")
     pS("tot", tr.S_tot)
+
+    print("Heat capacities:")
+    pC("el", tr.c_el)
+    pC("trans", tr.c_trans)
+    pC("rot", tr.c_rot)
+    pC("vib", tr.c_vib)
+    pC("tot", tr.c_tot)
