@@ -110,6 +110,10 @@ def parse_args(args):
     parser.add_argument(
         "--verbose", action="store_true", help="Print more detailed output."
     )
+    parser.add_argument(
+        "--mult", type=int, help="Multiplicity. Useful when parsing orca.hess files, "
+        "as they are lacking the multiplicity."
+    )
 
     return parser.parse_args(args)
 
@@ -125,6 +129,7 @@ def run():
     vib_kind = args.vibs
     rotor_cutoff = args.qrrho_cutoff
     invert_imags = args.invert_imags
+    mult = args.mult
 
     print(
         f"Using {vib_kind.upper()}-approach for vibrational entropies"
@@ -135,6 +140,7 @@ def run():
     qc = QCData(
         inp_fn,
         point_group=point_group,
+        mult=mult
     )
     if args.temps:
         T_init, T_final, steps = args.temps

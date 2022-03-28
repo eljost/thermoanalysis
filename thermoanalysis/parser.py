@@ -154,7 +154,8 @@ def parse_orca_hess(text):
     scf_energy = res.act_energy
     warnings.warn(
         "As of ORCA <= 5.0.3, the multiplicity is not found in the *.hess file. "
-        "Currently, it is hardcoded to 1!"
+        "By default, it is hardcoded to 1. You can change it by specifying it via "
+        "--mult [int]."
     )
     results = {
         "atoms": tuple(atoms),

@@ -18,6 +18,7 @@ class QCData:
         self,
         inp,
         point_group="c1",
+        mult=None,
     ):
 
         self.point_group = point_group.lower()
@@ -46,6 +47,9 @@ class QCData:
         # Treat inp as dict
         else:
             data = inp
+
+        if mult is not None:
+            data["mult"] = mult
 
         # Actually set data
         self.set_data(data)
