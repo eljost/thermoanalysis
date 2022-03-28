@@ -73,9 +73,14 @@ class QCData:
         except:
             raise CCLibParserError
 
+        try:
+            wavenumbers = data.vibfreqs
+        # Single atoms don't vibrate
+        except AttributeError:
+            wavenumbers = list()
         results = {
             "coords3d": data.atomcoords[-1],  # in Angstrom
-            "wavenumbers": data.vibfreqs,
+            "wavenumbers": wavenumbers,
             "scf_energy": data.scfenergies[-1] / AU2EV,
             "masses": data.atommasses,
             "mult": data.mult,

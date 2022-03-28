@@ -146,7 +146,7 @@ def translational_part_func(molecular_mass, temperature, pressure):
     volume = KB * temperature / pressure
     molecular_mass_kg = molecular_mass * AMU2KG
     q_trans = (
-        (2 * np.pi * molecular_mass_kg * KB * temperature / PLANCK**2) ** 1.5
+        (2 * np.pi * molecular_mass_kg * KB * temperature / PLANCK ** 2) ** 1.5
     ) * volume
     return q_trans
 
@@ -192,7 +192,7 @@ def sackur_tetrode(molecular_mass, temperature, pressure=p_DEFAULT):
     # Just using 1e5 instead of a "true" atmosphere of 1.01325e5 seems to
     # agree better with the results Gaussian and ORCA produce.
     q_trans = (
-        (2 * np.pi * molecular_mass * AMU2KG * KB * temperature / PLANCK**2)
+        (2 * np.pi * molecular_mass * AMU2KG * KB * temperature / PLANCK ** 2)
         ** (3 / 2)
         * KB
         * temperature
@@ -506,7 +506,7 @@ def qrrho_vibrational_part_func(temperature, frequencies, I_mean, cutoff, alpha=
     weights = chai_head_gordon_weights(frequencies, cutoff, alpha)
 
     def prod(q_vibs):
-        return np.product((q_vibs**weights) * (q_hr ** (1 - weights)))
+        return np.product((q_vibs ** weights) * (q_hr ** (1 - weights)))
 
     q_qrrho = prod(q_vibs)
     q_qrrho_V0 = prod(q_vibs_V0)
@@ -613,12 +613,12 @@ def free_rotor_entropies(temperature, frequencies, B_av=1e-44):
     S_free_rots : array-like
         Array containing free-rotor entropies in Hartree / (particle * K).
     """
-    inertia_moments = PLANCK / (8 * np.pi**2 * frequencies)
+    inertia_moments = PLANCK / (8 * np.pi ** 2 * frequencies)
     eff_inertia_moments = (inertia_moments * B_av) / (inertia_moments + B_av)
     S_free_rots = KBAU * (
         1 / 2
         + np.log(
-            (8 * np.pi**3 * eff_inertia_moments * KB * temperature / PLANCK**2)
+            (8 * np.pi ** 3 * eff_inertia_moments * KB * temperature / PLANCK ** 2)
             ** (1 / 2)
         )
     )
@@ -779,7 +779,11 @@ def thermochemistry(
     # Entropies
     S_el = electronic_entropy(qc.mult)
     S_rot = rotational_entropy(
-        T, qc.rot_temperatures, qc.symmetry_number, qc.is_linear, qc.is_atom
+        T,
+        qc.rot_temperatures,
+        qc.symmetry_number,
+        is_atom=qc.is_atom,
+        is_linear=qc.is_linear,
     )
     S_trans = translational_entropy(qc.M, T, pressure=pressure)
 
@@ -863,16 +867,16 @@ def print_thermo_results(thermo_results):
     au2CalMol = 1 / J2AU * NA * J2CAL
 
     def toCalMol(E):
-        return f"{E*au2CalMol:.2f} cal/mol"
+        return f"{E*au2CalMol: >14.2f} cal/mol"
 
     def StoCalKMol(S):
-        return f"{S*au2CalMol:.2f} cal/(K mol)"
+        return f"{S*au2CalMol: >12.2f} cal/(K mol)"
 
     def CtoCalKMol(c):
-        return f"{c*J2CAL:.4f} cal/(K mol)"
+        return f"{c*J2CAL: >12.4f} cal/(K mol)"
 
     def part_func(Q):
-        return f"{Q:.8e}"
+        return f"{Q: >12.8e}"
 
     def print_line(key, fmt_func, num):
         print(f"{key: >12s} = {fmt_func(num)}")

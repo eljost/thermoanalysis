@@ -154,3 +154,19 @@ def test_anthracene(fn, this_dir):
     qc = QCData(inp)
     thermo = thermochemistry(qc, temperature=298.15, kind="qrrho")
     assert thermo.dG == pytest.approx(0.18886409, abs=1.31e-3)
+
+
+def test_linear_hcn_thermochemistry(this_dir):
+    inp = this_dir / "logs/04_hcn_freq_nosymm.log"
+    qc = QCData(inp)
+    assert qc.is_linear
+    thermo = thermochemistry(qc, temperature=298.15, kind="rrho")
+    assert thermo.G == pytest.approx(-91.675498)
+
+
+def test_triplet_carbon_atom_thermochemistry(this_dir):
+    inp = this_dir / "logs/03_carbon_freq_nosym.log"
+    qc = QCData(inp)
+    assert qc.is_atom
+    thermo = thermochemistry(qc, temperature=298.15, kind="rrho")
+    assert thermo.G == pytest.approx(-37.212938)
