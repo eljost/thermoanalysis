@@ -28,7 +28,7 @@ from thermoanalysis.constants import (
     J2CAL,
     AMU2KG,
 )
-from thermoanalysis.config import ROTOR_CUT_DEFAULT
+from thermoanalysis.config import p_DEFAULT, ROTOR_CUT_DEFAULT
 from thermoanalysis.QCData import QCData
 
 
@@ -754,7 +754,7 @@ def vibrational_heat_capacity(
 def thermochemistry(
     qc: QCData,
     temperature: float,
-    pressure: float,
+    pressure: float=p_DEFAULT,
     kind: VIB_KINDS = "qrrho",
     rotor_cutoff: float = ROTOR_CUT_DEFAULT,
     scale_factor: float = 1.0,
@@ -930,7 +930,7 @@ def print_thermo_results(thermo_results: ThermoResults):
         return f"{Q: >12.8e}"
 
     def print_line(key, fmt_func, num):
-        print(f"{key: >12s} = {fmt_func(num)}")
+        print(f"{key: >18s} = {fmt_func(num)}")
 
     def pQ(key, num):
         print_line(f"Q_{key}", part_func, num)
@@ -966,7 +966,7 @@ def print_thermo_results(thermo_results: ThermoResults):
     pU("el", tr.U_el)
     pU("trans", tr.U_trans)
     pU("rot", tr.U_rot)
-    pU("vib", tr.U_vib)
+    pU("vib (incl. ZPE)", tr.U_vib)
     pU("therm", tr.U_therm)
     print("U_tot = U_el + U_trans + U_rot + U_vib")
     pU("tot", tr.U_tot)
@@ -979,6 +979,7 @@ def print_thermo_results(thermo_results: ThermoResults):
     pS("vib", tr.S_vib)
     print("S_tot = S_el + S_trans + S_rot + S_vib")
     pS("tot", tr.S_tot)
+    print()
 
     print("Heat capacities:")
     pC("el", tr.c_el)

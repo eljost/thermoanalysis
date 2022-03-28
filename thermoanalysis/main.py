@@ -39,7 +39,6 @@ def print_thermos(thermos):
 
 def dump_thermos(log_fn, thermos):
     log_path = Path(log_fn)
-    # columns =
     df = pd.DataFrame(
         thermos,
     ).drop(columns=["wavenumbers", "point_group"])
@@ -109,9 +108,7 @@ def parse_args(args):
         help="Invert imaginary frequencies bigger or equal to the threshold.",
     )
     parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Print more detailed output."
+        "--verbose", action="store_true", help="Print more detailed output."
     )
 
     return parser.parse_args(args)
