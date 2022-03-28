@@ -12,8 +12,10 @@
 
 
 from collections import namedtuple
+from typing import Literal, Optional, Tuple
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from thermoanalysis.constants import (
     C,
@@ -26,7 +28,12 @@ from thermoanalysis.constants import (
     J2CAL,
     AMU2KG,
 )
-from thermoanalysis.config import p_DEFAULT, ROTOR_CUT_DEFAULT
+from thermoanalysis.config import ROTOR_CUT_DEFAULT
+from thermoanalysis.QCData import QCData
+
+
+TRANS_ENTROPY_KINDS = Literal["sackur", "sackur_simple"]
+VIB_KINDS = Literal["qrrho", "rrho"]
 
 
 ThermoResults = namedtuple(
@@ -44,7 +51,9 @@ ThermoResults = namedtuple(
 )
 
 
-def chai_head_gordon_weights(frequencies, cutoff, alpha=4):
+def chai_head_gordon_weights(
+    frequencies: NDArray[np.float64], cutoff: float, alpha: int = 4
+) -> NDArray[np.float64]:
     """Chai-Head-Gordon damping function.
 
     Used for interpolating between harmonic oscillator and hindered rotor
@@ -52,17 +61,17 @@ def chai_head_gordon_weights(frequencies, cutoff, alpha=4):
 
     Parameters
     ----------
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
-    cutoff : float
+    cutoff
         Wavenumber cutoff in cm⁻¹. Vibrations below this threshold will mostly
         be treated as hindered rotors.
-    alpha : float
+    alpha
         Exponent alpha in the damping function.
 
     Returns
     -------
-    weights : ArrayLike
+    weights
         Weights of the damping function.
     """
 
@@ -76,21 +85,23 @@ def chai_head_gordon_weights(frequencies, cutoff, alpha=4):
 ##############
 
 
-def electronic_part_func(multiplicity, electronic_energies, temperature):
+def electronic_part_func(
+    multiplicity: int, electronic_energies: ArrayLike, temperature: float
+) -> float:
     """Electronic partition function.
 
     Parameters
     ----------
-    multiplicity : int
+    multiplicity
         Multiplicity of the molecule.
-    electronic_energies : iterable of floats
-        Electronic energy in Hartree.
+    electronic_energies
+        Electronic energy/energies in Hartree.
     temperature : float
         Absolute temperature in Kelvin.
 
     Returns
     -------
-    Q_el : float
+    Q_el
         Electronic partition function.
     """
 
@@ -101,19 +112,19 @@ def electronic_part_func(multiplicity, electronic_energies, temperature):
     return q_el
 
 
-def electronic_entropy(multiplicity):
+def electronic_entropy(multiplicity: int) -> float:
     """Electronic entropy.
 
     Currently, only one electronic state is considered. See [1] for reference.
 
     Parameters
     ----------
-    multiplicity : int
+    multiplicity
         Multiplicity of the molecule.
 
     Returns
     -------
-    S_el : float
+    S_el
         Electronic entropy in Hartree / particle.
     """
     S_el = KBAU * np.log(multiplicity)
@@ -125,21 +136,23 @@ def electronic_entropy(multiplicity):
 #######################
 
 
-def translational_part_func(molecular_mass, temperature, pressure):
+def translational_part_func(
+    molecular_mass: float, temperature: float, pressure: float
+) -> float:
     """Translational partition function Q_trans.
 
     Parameters
     ----------
-    molecular_mass : float
+    molecular_mass
         Molecular mass in atomic mass units (amu).
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    pressure : float, optional
+    pressure
         Pressure in Pascal.
 
     Returns
     -------
-    q_trans : float
+    q_trans
         Translational partition function.
     """
     # Volume of an atom of an ideal gas
@@ -151,42 +164,42 @@ def translational_part_func(molecular_mass, temperature, pressure):
     return q_trans
 
 
-def translational_energy(temperature):
+def translational_energy(temperature: float) -> float:
     """Kinectic energy of an ideal gas.
 
     See [1] for reference.
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
 
     Returns
     -------
-    U_trans : float
+    U_trans
         Kinetic energy in Hartree / particle.
     """
     U_trans = 3 / 2 * KBAU * temperature
     return U_trans
 
 
-def sackur_tetrode(molecular_mass, temperature, pressure=p_DEFAULT):
+def sackur_tetrode(molecular_mass: float, temperature: float, pressure: float) -> float:
     """Translational entropy of an ideal gas.
 
     See [1] for reference.
 
     Parameters
     ----------
-    molecular_mass : float
+    molecular_mass
         Molecular mass in atomic mass units (amu).
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    pressure : float, optional
+    pressure
         Pressure in Pascal.
 
     Returns
     -------
-    S_trans : float
+    S_trans
         Translational entropy in Hartree / (particle * K).
     """
     # Just using 1e5 instead of a "true" atmosphere of 1.01325e5 seems to
@@ -202,21 +215,21 @@ def sackur_tetrode(molecular_mass, temperature, pressure=p_DEFAULT):
     return S_trans
 
 
-def sackur_tetrode_simplified(molecular_mass, temperature):
+def sackur_tetrode_simplified(molecular_mass: float, temperature: float) -> float:
     """Translational entropy of a monoatomic ideal gas.
 
     See [3] for reference.
 
     Parameters
     ----------
-    molecular_mass : float
+    molecular_mass
         Molecular mass in atomic mass units (amu).
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
 
     Returns
     -------
-    S_trans : float
+    S_trans
         Translational entropy in J/(mol*K).
     """
     S_trans = (
@@ -225,21 +238,26 @@ def sackur_tetrode_simplified(molecular_mass, temperature):
     return S_trans
 
 
-def translational_entropy(molecular_mass, temperature, pressure, kind="sackur"):
+def translational_entropy(
+    molecular_mass: float,
+    temperature: float,
+    pressure: float,
+    kind: TRANS_ENTROPY_KINDS = "sackur",
+) -> float:
     """Wrapper for translational entropy calculation.
 
     Parameters
     ----------
-    molecular_mass : float
+    molecular_mass
         Molecular mass in atomic mass units (amu).
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    kind : str, ("sackur", "sackur_simple")
+    kind
         Type of calculation method.
 
     Returns
     -------
-    S_trans : float
+    S_trans
         Translational entropy.
     """
     funcs = {
@@ -251,7 +269,7 @@ def translational_entropy(molecular_mass, temperature, pressure, kind="sackur"):
     return funcs[kind](molecular_mass, temperature)
 
 
-def translational_heat_capacity():
+def translational_heat_capacity() -> float:
     """Constant volume heat capacity.
 
     Returns
@@ -269,30 +287,35 @@ def translational_heat_capacity():
 
 
 def rotational_part_func(
-    temperature, rot_temperatures, symmetry_number, is_atom, is_linear=False
-):
+    temperature: float,
+    rot_temperatures: NDArray[np.float64],
+    symmetry_number: int,
+    is_atom: bool,
+    is_linear: bool,
+) -> float:
     """Rotational partition function Q_rot.
 
     See [1] for reference.
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    rot_temperatures : np.array of size 3
+    rot_temperatures
         Rotational temperatures in Kelvin.
-    symmetry_number : int
+    symmetry_number
         Symmetry number.
-    is_atom : bool
+    is_atom
         Wether the molcule is an atom.
-    is_linear : bool, optional
+    is_linear
         Wether the molecule is linear.
 
     Returns
     -------
-    Q_rot : float
+    Q_rot
         Rotational partition function.
     """
+
     if is_atom:
         q_rot = 1
     elif is_linear:
@@ -309,29 +332,29 @@ def rotational_part_func(
     return q_rot
 
 
-def rotational_energy(temperature, is_linear, is_atom):
+def rotational_energy(temperature: float, is_linear: bool, is_atom: bool) -> float:
     """Rotational energy.
 
     See [1] for reference.
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    is_linear : bool
+    is_linear
         Wether the molecule is linear.
-    is_atom : bool
+    is_atom
         Wether the molcule is an atom.
 
     Returns
     -------
-    U_rot : float
+    U_rot
         Rotational energy in Hartree / particle.
     """
     if is_atom:
-        factor = 0
+        factor = 0.0
     elif is_linear:
-        factor = 1
+        factor = 1.0
     else:
         factor = 1.5
 
@@ -340,28 +363,32 @@ def rotational_energy(temperature, is_linear, is_atom):
 
 
 def rotational_entropy(
-    temperature, rot_temperatures, symmetry_number, is_atom, is_linear=False
-):
+    temperature: float,
+    rot_temperatures: NDArray[np.float64],
+    symmetry_number: int,
+    is_atom: bool,
+    is_linear: bool,
+) -> float:
     """Rotational entropy.
 
     See [1] for reference.
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    rot_temperatures : np.array of size 3
+    rot_temperatures
         Rotational temperatures in Kelvin.
-    symmetry_number : int
+    symmetry_number
         Symmetry number.
-    is_atom : bool
+    is_atom
         Wether the molcule is an atom.
-    is_linear : bool, optional
+    is_linear
         Wether the molecule is linear.
 
     Returns
     -------
-    S_rot : float
+    S_rot
         Rotational entropy in Hartree /(particle * K).
     """
 
@@ -369,24 +396,24 @@ def rotational_entropy(
         temperature, rot_temperatures, symmetry_number, is_atom, is_linear=is_linear
     )
     if is_atom:
-        plus = 0
+        plus = 0.0
     elif is_linear:
-        plus = 1
+        plus = 1.0
     # Polyamtomic, non-linear case
     else:
-        plus = 1.5  # 3 / 2
+        plus = 1.5
     S_rot = KBAU * (np.log(q_rot) + plus)
     return S_rot
 
 
-def rotational_heat_capacity(is_atom, is_linear=False):
+def rotational_heat_capacity(is_atom: bool, is_linear: bool) -> float:
     """Rotational heat capacity.
 
     Parameters
     ----------
-    is_atom : bool
+    is_atom
         Wether the molcule is an atom.
-    is_linear : bool, optional
+    is_linear
         Wether the molecule is linear.
 
     Returns
@@ -408,19 +435,19 @@ def rotational_heat_capacity(is_atom, is_linear=False):
 #####################
 
 
-def zero_point_energy(frequencies):
+def zero_point_energy(frequencies: NDArray[np.float64]) -> float:
     """Vibrational zero point energies.
 
     See [1] for reference.
 
     Parameters
     ----------
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
 
     Returns
     -------
-    ZPE : float
+    ZPE
         Vibrational ZPE for the given frequencies in Hartree / particle.
     """
 
@@ -428,14 +455,16 @@ def zero_point_energy(frequencies):
     return ZPE
 
 
-def vibrational_part_funcs(temperature, frequencies):
+def vibrational_part_funcs(
+    temperature: float, frequencies: NDArray[np.float64]
+) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Vibrational partition functions for harmonic oscillators.
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
 
     Returns
@@ -457,7 +486,13 @@ def vibrational_part_funcs(temperature, frequencies):
     return q_vibs, q_vibs_V0
 
 
-def qrrho_vibrational_part_func(temperature, frequencies, I_mean, cutoff, alpha=4):
+def qrrho_vibrational_part_func(
+    temperature: float,
+    frequencies: NDArray[np.float64],
+    I_mean: Optional[float],
+    cutoff: float,
+    alpha: int = 4,
+) -> Tuple[float, float]:
     """QRRHO vibrational partition function.
 
     As given in Eq. (7) in [6]. Mix between hindererd rotor
@@ -465,22 +500,24 @@ def qrrho_vibrational_part_func(temperature, frequencies, I_mean, cutoff, alpha=
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
-    I_mean : float
+    I_mean
         Average moment of inertia of the molecule in Angstrom² * amu.
-    cutoff : float
+    cutoff
         Wavenumber cutoff in cm⁻¹. Vibrations below this threshold will mostly
         be treated as hindered rotors.
-    alpha : float
+    alpha
         Exponent alpha in the damping function (Eq. (8) in [2], or Eq. (10) in [7])
 
     Returns
     -------
-    q_vib : float
-        QRRHO Vibrational partition function.
+    q_qrrho
+        QRRHO Vibrational partition function, unitless.
+    q_qrrho_V0
+        QRRHO Vibrational partition function, evaluated at first vibrational energy level.
     """
 
     wavenumbers = (frequencies / C) / 100  # in cm⁻¹
@@ -513,41 +550,46 @@ def qrrho_vibrational_part_func(temperature, frequencies, I_mean, cutoff, alpha=
     return q_qrrho, q_qrrho_V0
 
 
-def vibrational_part_func(temperature, frequencies):
+def vibrational_part_func(
+    temperature: float, frequencies: NDArray[np.float64]
+) -> Tuple[float, float]:
     """Vibrational partition function.
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
 
     Returns
     -------
-    q_vib : float
-        Vibrational partition function.
+    q_qrrho
+        QRRHO Vibrational partition function, unitless.
+    q_qrrho_V0
+        QRRHO Vibrational partition function, evaluated at first vibrational energy level,
+        unitless.
     """
     return qrrho_vibrational_part_func(
         temperature, frequencies, I_mean=None, cutoff=0.0
     )
 
 
-def vibrational_energy(temperature, frequencies):
+def vibrational_energy(temperature: float, frequencies: NDArray[np.float64]) -> float:
     """Vibrational energy.
 
     See [1] for reference.
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
 
     Returns
     -------
-    U_vib : float
+    U_vib
         Vibrational energy in Hartree / particle.
     """
     vib_temperatures = PLANCK * frequencies / KB
@@ -557,7 +599,9 @@ def vibrational_energy(temperature, frequencies):
     return U_vib
 
 
-def harmonic_vibrational_entropies(temperature, frequencies):
+def harmonic_vibrational_entropies(
+    temperature: float, frequencies: NDArray[np.float64]
+) -> NDArray[np.float64]:
     """Vibrational entropy of a harmonic oscillator.
 
     See [1] and [2] for reference. Eq. (3) in the Grimme paper
@@ -594,23 +638,25 @@ def harmonic_vibrational_entropies(temperature, frequencies):
     return S_vibs
 
 
-def free_rotor_entropies(temperature, frequencies, B_av=1e-44):
+def free_rotor_entropies(
+    temperature: float, frequencies: NDArray[np.float64], B_av: float = 1e-44
+) -> NDArray[np.float64]:
     """Entropy of a free rotor.
 
     See [2] for reference.
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
-    B_av : float
+    B_av
         Limiting value for effective moment of inertia in kg*m².
 
     Returns
     -------
-    S_free_rots : array-like
+    S_free_rots
         Array containing free-rotor entropies in Hartree / (particle * K).
     """
     inertia_moments = PLANCK / (8 * np.pi ** 2 * frequencies)
@@ -625,26 +671,28 @@ def free_rotor_entropies(temperature, frequencies, B_av=1e-44):
     return S_free_rots
 
 
-def vibrational_entropies(temperature, frequencies, cutoff, alpha=4):
+def vibrational_entropies(
+    temperature: float, frequencies: NDArray[np.float64], cutoff: float, alpha: int = 4
+) -> NDArray[np.float64]:
     """Weighted vibrational entropy.
 
     As given in Eq. (7) of [2].
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
-    cutoff : float
+    cutoff
         Wavenumber cutoff in cm⁻¹. Vibrations below this threshold will mostly
         be described by free-rotor entropies.
-    alpha : float
+    alpha
         Exponent alpha in the damping function (Eq. (8) in [2]).
 
     Returns
     -------
-    S_vibs : array-like
+    S_vibs
         Array containing vibrational entropies in Hartree / (particle * K).
     """
     weights = chai_head_gordon_weights(frequencies, cutoff, alpha)
@@ -654,46 +702,49 @@ def vibrational_entropies(temperature, frequencies, cutoff, alpha=4):
     return S_vibs
 
 
-def vibrational_entropy(temperature, frequencies, cutoff, alpha=4):
+def vibrational_entropy(
+    temperature: float, frequencies: NDArray[np.float64], cutoff: float, alpha: int = 4
+) -> float:
     """Vibrational entropy.
 
     Wrapper function. As given in Eq. (7) of [2].
 
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
-    cutoff : float
+    cutoff
         Wavenumber cutoff in cm⁻¹. Vibrations below this threshold will mostly
         be described by free-rotor entropies.
-    alpha : float
+    alpha
         Exponent alpha in the damping function (Eq. (8) in [2]).
 
     Returns
     -------
-    S_vib : float
+    S_vib
         Vibrational entropy in Hartree / (particle * K).
     """
     return vibrational_entropies(temperature, frequencies, cutoff, alpha).sum()
 
 
-def vibrational_heat_capacity(temperature, frequencies):
+def vibrational_heat_capacity(
+    temperature: float, frequencies: NDArray[np.float64]
+) -> float:
     """
     Parameters
     ----------
-    temperature : float
+    temperature
         Absolute temperature in Kelvin.
-    frequencies : array-like
+    frequencies
         Vibrational frequencies in 1/s.
 
     Returns
     -------
     c_vib
-        Vibrational contributions to the heat capacity.
+        Vibrational contributions to the heat capacity in J / (K mol).
     """
-    frequencies = np.array(frequencies, dtype=float)
     quot = PLANCK * frequencies / (KB * temperature)
 
     c_vib = R * (np.exp(quot) * (quot / (np.exp(quot) - 1)) ** 2).sum()
@@ -701,15 +752,15 @@ def vibrational_heat_capacity(temperature, frequencies):
 
 
 def thermochemistry(
-    qc,
-    temperature,
-    pressure=p_DEFAULT,
-    kind="qrrho",
-    rotor_cutoff=ROTOR_CUT_DEFAULT,
-    scale_factor=1.0,
-    invert_imags=0.0,
-    cutoff=0.0,
-):
+    qc: QCData,
+    temperature: float,
+    pressure: float,
+    kind: VIB_KINDS = "qrrho",
+    rotor_cutoff: float = ROTOR_CUT_DEFAULT,
+    scale_factor: float = 1.0,
+    invert_imags: float = 0.0,
+    cutoff: float = 0.0,
+) -> ThermoResults:
     assert kind in "qrrho rrho".split()
     assert invert_imags <= 0.0
     assert cutoff >= 0.0
@@ -863,7 +914,7 @@ def thermochemistry(
     return thermo
 
 
-def print_thermo_results(thermo_results):
+def print_thermo_results(thermo_results: ThermoResults):
     au2CalMol = 1 / J2AU * NA * J2CAL
 
     def toCalMol(E):
