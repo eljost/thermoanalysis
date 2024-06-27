@@ -3,7 +3,6 @@ from pytest import approx
 
 from thermoanalysis.constants import CAL_MOL2AU, KCAL_MOL2AU
 from thermoanalysis.thermo import thermochemistry, print_thermo_results
-from thermoanalysis.main import run
 from thermoanalysis.QCData import QCData
 
 

@@ -159,7 +159,7 @@ def translational_part_func(
     volume = KB * temperature / pressure
     molecular_mass_kg = molecular_mass * AMU2KG
     q_trans = (
-        (2 * np.pi * molecular_mass_kg * KB * temperature / PLANCK ** 2) ** 1.5
+        (2 * np.pi * molecular_mass_kg * KB * temperature / PLANCK**2) ** 1.5
     ) * volume
     return q_trans
 
@@ -205,8 +205,7 @@ def sackur_tetrode(molecular_mass: float, temperature: float, pressure: float) -
     # Just using 1e5 instead of a "true" atmosphere of 1.01325e5 seems to
     # agree better with the results Gaussian and ORCA produce.
     q_trans = (
-        (2 * np.pi * molecular_mass * AMU2KG * KB * temperature / PLANCK ** 2)
-        ** (3 / 2)
+        (2 * np.pi * molecular_mass * AMU2KG * KB * temperature / PLANCK**2) ** (3 / 2)
         * KB
         * temperature
         / pressure
@@ -327,7 +326,7 @@ def rotational_part_func(
         q_rot = (
             np.pi ** (1 / 2)
             / symmetry_number
-            * (temperature ** (3 / 2) / np.product(rot_temperatures) ** (1 / 2))
+            * (temperature ** (3 / 2) / np.prod(rot_temperatures) ** (1 / 2))
         )
     return q_rot
 
@@ -543,7 +542,7 @@ def qrrho_vibrational_part_func(
     weights = chai_head_gordon_weights(frequencies, cutoff, alpha)
 
     def prod(q_vibs):
-        return np.product((q_vibs ** weights) * (q_hr ** (1 - weights)))
+        return np.prod((q_vibs**weights) * (q_hr ** (1 - weights)))
 
     q_qrrho = prod(q_vibs)
     q_qrrho_V0 = prod(q_vibs_V0)
@@ -659,12 +658,12 @@ def free_rotor_entropies(
     S_free_rots
         Array containing free-rotor entropies in Hartree / (particle * K).
     """
-    inertia_moments = PLANCK / (8 * np.pi ** 2 * frequencies)
+    inertia_moments = PLANCK / (8 * np.pi**2 * frequencies)
     eff_inertia_moments = (inertia_moments * B_av) / (inertia_moments + B_av)
     S_free_rots = KBAU * (
         1 / 2
         + np.log(
-            (8 * np.pi ** 3 * eff_inertia_moments * KB * temperature / PLANCK ** 2)
+            (8 * np.pi**3 * eff_inertia_moments * KB * temperature / PLANCK**2)
             ** (1 / 2)
         )
     )
@@ -754,7 +753,7 @@ def vibrational_heat_capacity(
 def thermochemistry(
     qc: QCData,
     temperature: float,
-    pressure: float=p_DEFAULT,
+    pressure: float = p_DEFAULT,
     kind: VIB_KINDS = "qrrho",
     rotor_cutoff: float = ROTOR_CUT_DEFAULT,
     scale_factor: float = 1.0,

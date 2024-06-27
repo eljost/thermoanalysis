@@ -1,6 +1,5 @@
 import json
 
-import numpy as np
 import pytest
 
 from thermoanalysis.QCData import QCData

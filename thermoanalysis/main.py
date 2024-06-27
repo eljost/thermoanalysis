@@ -5,7 +5,6 @@ from pathlib import Path
 import sys
 
 import numpy as np
-import h5py
 import pandas as pd
 from tabulate import tabulate
 
@@ -43,7 +42,7 @@ def dump_thermos(log_fn, thermos):
         thermos,
     ).drop(columns=["wavenumbers", "point_group"])
     h5_fn = f"{log_path.stem}_thermo.h5"
-    df.to_hdf(h5_fn, key=f"thermo")
+    df.to_hdf(h5_fn, key="thermo")
     print(f"Dumped thermo-data to '{h5_fn}'.")
 
 
