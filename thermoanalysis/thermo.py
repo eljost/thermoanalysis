@@ -42,7 +42,7 @@ ThermoResults = namedtuple(
         "T kBT M p org_wavenumbers wavenumbers "
         "scale_factor invert_imag cutoff kind "
         "atom_num linear point_group sym_num "
-        "Q_el Q_trans Q_rot Q_vib Q_vib_V0 "
+        "Q_el Q_trans Q_rot Q_vib Q_vib_V0 Q_tot Q_tot_V0 "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
         "S_trans S_rot S_vib S_el S_tot "
         "c_el c_trans c_rot c_vib c_tot "
@@ -860,6 +860,9 @@ def thermochemistry(
     else:
         raise Exception("You should never get here!")
 
+    Q_tot = Q_el * Q_trans * Q_rot * Q_vib
+    Q_tot_V0 = Q_el * Q_trans * Q_rot * Q_vib_V0
+
     S_tot = S_el + S_trans + S_rot + S_vib
     G = H - T * S_tot
     dG = G - U_el
@@ -884,6 +887,8 @@ def thermochemistry(
         Q_rot=Q_rot,
         Q_vib=Q_vib,
         Q_vib_V0=Q_vib_V0,
+        Q_tot=Q_tot,
+        Q_tot_V0=Q_tot_V0,
         U_el=U_el,
         U_trans=U_trans,
         U_rot=U_rot,
