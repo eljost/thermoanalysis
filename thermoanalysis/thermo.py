@@ -40,7 +40,7 @@ ThermoResults = namedtuple(
     "ThermoResults",
     (
         "T kBT M p org_wavenumbers wavenumbers "
-        "scale_factor invert_imag cutoff kind "
+        "scale_factor zpe_scale_factor invert_imag cutoff kind "
         "atom_num linear point_group sym_num "
         "Q_el Q_trans Q_rot Q_vib Q_vib_V0 Q_tot Q_tot_V0 "
         "U_el U_trans U_rot U_vib U_therm U_tot ZPE H "
@@ -757,6 +757,7 @@ def thermochemistry(
     kind: VIB_KINDS = "qrrho",
     rotor_cutoff: float = ROTOR_CUT_DEFAULT,
     scale_factor: float = 1.0,
+    zpe_scale_factor: float = 1.0,
     invert_imags: float = 0.0,
     cutoff: float = 0.0,
 ) -> ThermoResults:
@@ -813,17 +814,21 @@ def thermochemistry(
         is_linear=qc.is_linear,
     )
 
+    # Zero point energy
+    zpe_org = zpe_scale_factor * zero_point_energy(vib_frequencies)
+    zpe = zpe_scale_factor * zpe_org
+
     # Internal energies
     U_el = qc.scf_energy
     U_trans = translational_energy(T)
     U_rot = rotational_energy(T, qc.is_linear, qc.is_atom)
+    # U_vib already includes ZPE
     U_vib = vibrational_energy(T, vib_frequencies)
-
-    # ZPE isn't included here as it is already included in the U_vib term
+    # Replace ZPE in U_vib w/ scaled ZPE
+    U_vib = U_vib - zpe_org + zpe
     U_therm = U_rot + U_vib + U_trans
     U_tot = U_el + U_therm
 
-    zpe = zero_point_energy(vib_frequencies)
     H = U_tot + KBAU * T
 
     # Entropies
@@ -875,6 +880,7 @@ def thermochemistry(
         point_group=qc.point_group,
         sym_num=qc.symmetry_number,
         scale_factor=scale_factor,
+        zpe_scale_factor=zpe_scale_factor,
         invert_imag=invert_imags,
         cutoff=cutoff,
         kind=kind,
