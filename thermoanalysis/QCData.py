@@ -20,7 +20,6 @@ class QCData:
         point_group="c1",
         mult=None,
     ):
-
         self.point_group = point_group.lower()
         self.symmetry_number = self.get_symmetry_number()
 
@@ -180,10 +179,13 @@ class QCData:
         rot_temps : np.array
             Rotational temperatures in K.
         """
+        if self.is_atom:
+            return np.full(3, np.nan)
+
         self.standard_orientation()
-        I = self.inertia_tensor() * ANG2M ** 2 * AMU2KG
+        I = self.inertia_tensor() * ANG2M**2 * AMU2KG
         w, v = np.linalg.eigh(I)
-        rot_temps = PLANCK ** 2 / (8 * np.pi ** 2 * w * KB)
+        rot_temps = PLANCK**2 / (8 * np.pi**2 * w * KB)
         return rot_temps
 
     def get_symmetry_number(self, point_group=None):
@@ -242,7 +244,7 @@ class QCData:
             Ineratia tensor  in units of Angstrom² * amu.
         """
         x, y, z = self.coords3d.T
-        squares = np.sum(self.coords3d ** 2 * self.masses[:, None], axis=0)
+        squares = np.sum(self.coords3d**2 * self.masses[:, None], axis=0)
         I_xx = squares[1] + squares[2]
         I_yy = squares[0] + squares[2]
         I_zz = squares[0] + squares[1]
